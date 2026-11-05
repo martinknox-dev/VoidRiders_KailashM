@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import Header from './components/Header';
 import SettingsModal from './components/SettingsModal';
 import HardwareWizardModal from './components/HardwareWizardModal';
@@ -14,6 +15,8 @@ import { cyberAudioPlayer } from './services/audioSynthesizer';
 import { callSiliconFlowSTT, callGroqWhisperSTT } from './services/cloudServices';
 import AnalyzingOverlay from './components/AnalyzingOverlay';
 import LandingPage from './components/LandingPage';
+import DashboardSidebar from './components/DashboardSidebar';
+import DashboardOverview from './components/DashboardOverview';
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(() => {
@@ -529,25 +532,36 @@ export default function App() {
   }
 
   return (
-    <div className="dashboard-theme min-h-screen flex flex-col bg-slate-100/60 dark:bg-[#070a10] text-slate-900 dark:text-slate-100 font-sans selection:bg-cyan-500 selection:text-black transition-colors duration-200">
-      {/* Top Header */}
-      <Header
-        isMockMode={isMockMode}
-        setIsMockMode={handleToggleMockMode}
+    <div className="dashboard-theme dashboard-shell min-h-screen flex bg-slate-100/60 dark:bg-[#070a10] text-slate-900 dark:text-slate-100 font-sans selection:bg-cyan-500 selection:text-black transition-colors duration-200">
+      <DashboardSidebar
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenHardwareWizard={() => setIsHardwareWizardOpen(true)}
-        provider={provider}
         backendConnected={backendConnected}
-        currentTier={currentTier}
-        storageInfo={storageInfo}
-        theme={theme}
-        setTheme={setTheme}
+        onOpenDashboard={() => {
+          window.history.pushState({}, '', '/');
+          setShowLanding(true);
+        }}
       />
-
-      {/* Main 3-Column Dashboard Body: Flex-1, flexible layout at any zoom level */}
-      <main className="flex-1 max-w-[1680px] w-full mx-auto p-2.5 sm:p-3.5 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:h-[calc(100vh-68px)] lg:max-h-[1100px] overflow-hidden items-stretch">
+      <div className="dashboard-main">
+        <Header
+          isMockMode={isMockMode}
+          setIsMockMode={handleToggleMockMode}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenHardwareWizard={() => setIsHardwareWizardOpen(true)}
+          provider={provider}
+          backendConnected={backendConnected}
+          currentTier={currentTier}
+          storageInfo={storageInfo}
+          theme={theme}
+          setTheme={setTheme}
+        />
+        <div className="dashboard-command" id="command">
+          <div><p className="dashboard-command-eyebrow">Operational workspace / 01</p><h1>Voice Intelligence Command Center</h1><p>Triage <span>·</span> Analyze <span>·</span> Coordinate</p></div>
+          <div className="dashboard-command-status"><span className={backendConnected ? 'is-online' : ''} /> {backendConnected ? 'Analysis service online' : 'Local analysis available'}</div>
+        </div>
+        <DashboardOverview activeCount={displayedCalls.length} savedCount={savedCases.length} isAnalyzing={isAnalyzing} backendConnected={backendConnected} />
+        <main className="dashboard-workspace" id="analysis">
         {/* Left Column: Priority Call Queue */}
-        <div className="lg:col-span-3 h-full min-h-[380px] lg:min-h-0 flex flex-col">
+        <div className="lg:col-span-3 h-full min-h-[380px] lg:min-h-0 flex flex-col" id="incidents">
           <CallQueue
             calls={displayedCalls}
             selectedCallId={activeCall?.call_id}
@@ -586,7 +600,9 @@ export default function App() {
             isCaseSaved={isCurrentCaseSaved}
           />
         </div>
-      </main>
+        </main>
+        <footer className="dashboard-status-strip"><ShieldCheck size={13} /> Indicative triage signals only · Human verification required <span>VECNA-PULSE / LOCAL WORKSPACE</span></footer>
+      </div>
 
       {/* Settings Modal */}
       <SettingsModal
