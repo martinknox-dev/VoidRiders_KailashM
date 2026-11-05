@@ -100,7 +100,9 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 .architecture-model { position: absolute; left: 50%; top: 46%; width: 390px; height: 310px; transform-style: preserve-3d; transform: translate(-50%, -50%) rotateX(11deg) rotateY(var(--model-rotation)); transition: transform .18s ease-out; z-index: 0; }
 .architecture-canvas:not(.is-fallback) ~ .architecture-grid,
 .architecture-canvas:not(.is-fallback) ~ .architecture-model { opacity: 0; pointer-events: none; }
-.voice-stage { position: absolute; right: 2%; top: 12%; width: 53%; height: 77%; min-height: 470px; perspective: 1300px; background: radial-gradient(circle at 54% 46%, rgba(85,183,174,.14), transparent 42%); }
+.voice-stage { position: absolute; right: 2%; top: 12%; width: 53%; height: 77%; min-height: 470px; perspective: 1300px; background: radial-gradient(circle at 54% 46%, rgba(177,139,86,.18), transparent 42%); }
+.voice-stage .architecture-canvas { cursor: grab; touch-action: none; }
+.voice-stage .architecture-canvas.is-dragging { cursor: grabbing; }
 .voice-stage .architecture-canvas { z-index: 2; }
 .voice-stage .architecture-caption { z-index: 3; }
 .signals-section { background: #101923; color: #f1ede4; }

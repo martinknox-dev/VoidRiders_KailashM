@@ -35,7 +35,12 @@ const capabilityStats = [
 
 function VoiceScene({ progress }) {
   const canvasRef = React.useRef(null);
+  const progressRef = React.useRef(progress);
   const [supported, setSupported] = useState(true);
+
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -56,12 +61,13 @@ function VoiceScene({ progress }) {
     const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
     const face = new THREE.Group();
     scene.add(face);
+    const orbit = { x: 0, y: 0 };
+    const pointer = { active: false, x: 0, y: 0 };
 
-    const skin = new THREE.MeshStandardMaterial({ color: 0x9ca9b2, roughness: 0.6, metalness: 0.12 });
-    const skinLight = new THREE.MeshStandardMaterial({ color: 0xd5d9d8, roughness: 0.5, metalness: 0.15 });
+    const sculpture = new THREE.MeshStandardMaterial({ color: 0xe7dfcf, roughness: 0.72, metalness: 0.04 });
+    const waveform = new THREE.MeshStandardMaterial({ color: 0x756653, roughness: 0.5, metalness: 0.12 });
+    const waveformEdge = new THREE.MeshStandardMaterial({ color: 0xb18b56, roughness: 0.38, metalness: 0.52 });
     const dark = new THREE.MeshStandardMaterial({ color: 0x101923, roughness: 0.35 });
-    const teal = new THREE.MeshStandardMaterial({ color: 0x55b7ae, emissive: 0x144944, emissiveIntensity: 1.2 });
-    const bronze = new THREE.MeshStandardMaterial({ color: 0xb18b56, metalness: 0.7, roughness: 0.3 });
 
     const box = (size, position, material, parent = face) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
@@ -76,31 +82,46 @@ function VoiceScene({ progress }) {
       return mesh;
     };
 
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(2.55, 32, 24), skin);
-    skull.scale.set(0.78, 1, 0.8);
-    skull.position.set(0.35, 0.2, 0);
-    face.add(skull);
-    const jaw = new THREE.Mesh(new THREE.SphereGeometry(1.1, 24, 16), skinLight);
-    jaw.scale.set(1.25, 0.48, 0.7);
-    jaw.position.set(-1.22, -1.32, 0);
-    face.add(jaw);
-    const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.09, 10, 24, Math.PI), teal);
-    mouth.rotation.set(Math.PI / 2, 0, Math.PI / 2);
-    mouth.position.set(-2.05, -0.75, 0.55);
-    face.add(mouth);
-    const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.35, 18, 12), bronze);
-    tongue.scale.set(1.3, 0.35, 0.55);
-    tongue.position.set(-2.02, -0.98, 0.58);
-    face.add(tongue);
-    const throat = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.52, 2.1, 16), teal);
-    throat.rotation.z = Math.PI / 2;
-    throat.position.set(-1.15, -0.8, -0.25);
-    throat.material.transparent = true;
-    throat.material.opacity = 0.72;
-    face.add(throat);
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8), teal);
-    eye.position.set(-1.8, 0.58, 0.73);
-    face.add(eye);
+    const profileShape = new THREE.Shape();
+    profileShape.moveTo(-0.75, -2.55);
+    profileShape.lineTo(0.72, -2.55);
+    profileShape.quadraticCurveTo(0.78, -1.92, 0.55, -1.42);
+    profileShape.quadraticCurveTo(0.92, -1.16, 1.35, -0.92);
+    profileShape.quadraticCurveTo(1.62, -0.73, 1.7, -0.38);
+    profileShape.quadraticCurveTo(1.74, -0.16, 1.98, -0.02);
+    profileShape.quadraticCurveTo(2.12, 0.08, 1.96, 0.18);
+    profileShape.lineTo(1.7, 0.23);
+    profileShape.quadraticCurveTo(1.88, 0.34, 1.69, 0.39);
+    profileShape.quadraticCurveTo(1.55, 0.44, 1.45, 0.66);
+    profileShape.quadraticCurveTo(1.38, 1.05, 1.15, 1.42);
+    profileShape.quadraticCurveTo(0.76, 2.13, -0.08, 2.27);
+    profileShape.quadraticCurveTo(-0.98, 2.38, -1.36, 1.72);
+    profileShape.quadraticCurveTo(-1.68, 0.96, -1.48, 0.04);
+    profileShape.quadraticCurveTo(-1.33, -0.58, -0.9, -1.05);
+    profileShape.quadraticCurveTo(-0.56, -1.52, -0.75, -2.55);
+    const bust = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(profileShape, { depth: 1.8, bevelEnabled: true, bevelSegments: 3, bevelSize: 0.08, bevelThickness: 0.12 }),
+      sculpture
+    );
+    bust.position.set(0.1, 0, -0.9);
+    face.add(bust);
+    const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.55, 0.28, 32), sculpture);
+    shoulder.scale.z = 0.75;
+    shoulder.position.set(-0.05, -2.58, 0);
+    face.add(shoulder);
+
+    const waveformGroup = new THREE.Group();
+    waveformGroup.position.set(-0.45, 0.75, 0.06);
+    face.add(waveformGroup);
+    const bars = [0.12, 0.2, 0.34, 0.57, 0.82, 1.18, 1.55, 1.02, 0.67, 0.43, 0.27, 0.15];
+    bars.forEach((height, index) => {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.1, height, 0.12), waveform);
+      bar.position.set((index - 5.5) * 0.16, 0, 0);
+      waveformGroup.add(bar);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(0.13, height + 0.06, 0.04), waveformEdge);
+      cap.position.set((index - 5.5) * 0.16, 0, 0.07);
+      waveformGroup.add(cap);
+    });
     const waves = new THREE.Group();
     face.add(waves);
     for (let index = 0; index < 5; index += 1) {
@@ -127,23 +148,57 @@ function VoiceScene({ progress }) {
     };
     const draw = (value) => {
       const interiorProgress = Math.max(0, (value - 0.25) / 0.5);
-        face.rotation.y = -0.35 + value * 0.9;
-        jaw.position.y = -1.32 - interiorProgress * 0.35;
-        mouth.scale.y = 1 + interiorProgress * 0.8;
-        waves.visible = value > 0.12;
-        camera.position.set(5.8 - interiorProgress * 2.2, 1.4 + interiorProgress * 0.3, 8 - interiorProgress * 2);
-        camera.lookAt(-0.4, -0.2, 0);
+      face.rotation.y = orbit.y + value * 0.25;
+      face.rotation.x = orbit.x;
+      waveformGroup.scale.setScalar(0.82 + interiorProgress * 0.28);
+      waves.visible = value > 0.25;
+      const distance = 8 - interiorProgress * 2;
+      const horizontal = orbit.y * 1.5;
+      const vertical = orbit.x * 1.2;
+      camera.position.set(horizontal, vertical, distance);
+      camera.lookAt(0, 0, 0);
       renderer.render(scene, camera);
     };
     resize();
-    draw(progress);
+    draw(progressRef.current);
     const onProgress = (event) => draw(event.detail);
     canvas.addEventListener('architecture-progress', onProgress);
+    const onPointerDown = (event) => {
+      pointer.active = true;
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      canvas.setPointerCapture(event.pointerId);
+      canvas.classList.add('is-dragging');
+    };
+    const onPointerMove = (event) => {
+      if (!pointer.active) return;
+      const deltaX = event.clientX - pointer.x;
+      const deltaY = event.clientY - pointer.y;
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      // Inverse orbit: the sculpture moves opposite to the pointer.
+      orbit.y = THREE.MathUtils.clamp(orbit.y - deltaX * 0.008, -0.9, 0.9);
+      orbit.x = THREE.MathUtils.clamp(orbit.x + deltaY * 0.006, -0.6, 0.6);
+      draw(progress);
+    };
+    const onPointerUp = (event) => {
+      pointer.active = false;
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+      canvas.classList.remove('is-dragging');
+    };
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerUp);
     const observer = new ResizeObserver(resize);
     observer.observe(canvas.parentElement);
     return () => {
       observer.disconnect();
       canvas.removeEventListener('architecture-progress', onProgress);
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerUp);
       renderer.dispose();
       scene.traverse((object) => {
         if (object.geometry) object.geometry.dispose();
@@ -167,7 +222,7 @@ function VoiceModel({ progress }) {
     <div className="voice-stage" aria-label="Interactive three-dimensional human speech model">
       <VoiceScene progress={progress} />
       <div className="architecture-caption">
-        <span>SCROLL TO EXPLORE VOICE</span>
+        <span>DRAG TO ORBIT / SCROLL TO EXPLORE</span>
         <span className="caption-line" />
         <strong>{String(Math.round(progress * 100)).padStart(2, '0')} / 100</strong>
       </div>
