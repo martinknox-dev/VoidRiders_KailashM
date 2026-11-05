@@ -9,7 +9,7 @@ import { FALLBACK_SCENARIOS, INDICATIVE_DISCLAIMER } from './mockData';
 import { detectBrowserHardware, fetchBackendHardware } from './services/hardwareEngine';
 import { analyzeAudioClientSide } from './services/clientSerEngine';
 import { runLocalSpeechTriage } from './services/localModelEngine';
-import { saveCaseToDevice, getAllSavedCases, deleteSavedCase } from './services/caseDb';
+import { saveCaseToDevice, getAllSavedCases, deleteSavedCase, generateEvidenceSha256, generateSection65BCertificate, formatSection65BMarkdownBanner } from './services/caseDb';
 import { cyberAudioPlayer } from './services/audioSynthesizer';
 import { callSiliconFlowSTT, callGroqWhisperSTT } from './services/cloudServices';
 import AnalyzingOverlay from './components/AnalyzingOverlay';
@@ -447,12 +447,35 @@ export default function App() {
     setIsExporting(true);
 
     try {
+      const evidencePayload = {
+        call_id: activeCall.call_id,
+        timestamp_ms: activeCall.timestamp_ms,
+        caller_tag: activeCall.caller_tag,
+        urgency_score: activeCall.urgency_score,
+        urgency_level: activeCall.urgency_level,
+        dominant_emotion: activeCall.dominant_emotion,
+        acoustic_biomarkers: activeCall.acoustic_biomarkers,
+        transcript: activeCall.transcript,
+        extracted_entities: activeCall.extracted_entities,
+        scam_stage: activeCall.scam_stage,
+        triage_insights: activeCall.triage_insights,
+      };
+
+      const sha256Hash = await generateEvidenceSha256(evidencePayload);
+      const section65BCert = generateSection65BCertificate(activeCall, sha256Hash);
+      const banner = formatSection65BMarkdownBanner(section65BCert);
+
       let reportData;
       if (isMockMode || !backendConnected) {
+        const rawMd = `# Incident Case Record\n**Case ID:** ${activeCall.call_id}\n**Urgency Score:** ${activeCall.urgency_score}/100\n**State:** ${activeCall.dominant_emotion}\n\n## Transcript\n> "${activeCall.transcript?.raw_redacted}"\n\n## Incident Classification & Threat Stage\n- **Category:** ${activeCall.triage_insights?.crime_category || 'Financial Cyber Fraud'}\n- **Attack Stage:** ${activeCall.scam_stage?.stage_name || 'ASSET LIQUIDATION'}\n- **Forensic SHA-256 Digest:** \`${sha256Hash}\`\n\n## Notice\n${INDICATIVE_DISCLAIMER}`;
         reportData = {
           filename_base: `VECNA-CASE-${activeCall.call_id}`,
-          markdown_report: `# Incident Case Record\n**Case ID:** ${activeCall.call_id}\n**Urgency Score:** ${activeCall.urgency_score}/100\n**State:** ${activeCall.dominant_emotion}\n\n## Transcript\n> "${activeCall.transcript?.raw_redacted}"\n\n## Notice\n${INDICATIVE_DISCLAIMER}`,
-          json_packet: { activeCall, copilotData },
+          markdown_report: banner + rawMd,
+          json_packet: {
+            forensic_certificate_65b: section65BCert,
+            activeCall,
+            copilotData,
+          },
         };
       } else {
         const res = await fetch('/api/export-report', {
@@ -462,10 +485,20 @@ export default function App() {
             triage_payload: activeCall,
             officer_notes: copilotData?.fir_summary_note || 'Intake log recorded.',
             copilot_data: copilotData,
+            section_65b_cert: section65BCert,
+            sha256_hash: sha256Hash,
           }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        reportData = await res.json();
+        const serverReport = await res.json();
+        reportData = {
+          ...serverReport,
+          markdown_report: banner + (serverReport.markdown_report || ''),
+          json_packet: {
+            forensic_certificate_65b: section65BCert,
+            ...(serverReport.json_packet || {}),
+          },
+        };
       }
 
       const mdBlob = new Blob([reportData.markdown_report], { type: 'text/markdown;charset=utf-8' });
@@ -519,6 +552,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-slate-100/60 dark:bg-[#070a10] text-slate-900 dark:text-slate-100 font-sans selection:bg-cyan-500 selection:text-black transition-colors duration-200">
       {/* Top Header */}
       <Header
+        activeCall={activeCall}
         isMockMode={isMockMode}
         setIsMockMode={handleToggleMockMode}
         onOpenSettings={() => setIsSettingsOpen(true)}

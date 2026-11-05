@@ -9,9 +9,20 @@ import {
   Volume2,
   FileAudio,
   Radio,
-  FileCheck
+  FileCheck,
+  Copy,
+  Check,
+  ShieldAlert,
+  Smartphone,
+  CreditCard,
+  Send,
+  Building,
+  Zap,
+  ExternalLink,
+  Lock
 } from 'lucide-react';
 import { cyberAudioPlayer } from '../services/audioSynthesizer';
+import PitchContourCanvas from './PitchContourCanvas';
 
 export default function ForensicsPanel({
   activeCall,
@@ -28,8 +39,8 @@ export default function ForensicsPanel({
   const [audioPlaybackSec, setAudioPlaybackSec] = useState(0);
   const [audioDurationSec, setAudioDurationSec] = useState(10);
   const [audioVolume, setAudioVolume] = useState(0.85);
-  const [freqBands, setFreqBands] = useState(new Array(24).fill(0));
   const [liveSpeechText, setLiveSpeechText] = useState('');
+  const [chipFeedback, setChipFeedback] = useState({});
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -75,6 +86,7 @@ export default function ForensicsPanel({
     cyberAudioPlayer.stop();
     setIsPlayingAudio(false);
     setAudioPlaybackSec(0);
+    setChipFeedback({});
   }, [activeCall?.call_id]);
 
   // Stop audio and recording if active tab changes
@@ -99,7 +111,6 @@ export default function ForensicsPanel({
         micStreamRef.current.getTracks().forEach((t) => t.stop());
       }
       setIsRecording(false);
-      setFreqBands(new Array(24).fill(0));
     }
   }, [activeTab]);
 
@@ -121,7 +132,6 @@ export default function ForensicsPanel({
         micStreamRef.current.getTracks().forEach((t) => t.stop());
       }
       setIsRecording(false);
-      setFreqBands(new Array(24).fill(0));
     } else {
       try {
         setLiveSpeechText('');
@@ -136,20 +146,6 @@ export default function ForensicsPanel({
         analyser.fftSize = 64;
         source.connect(analyser);
         analyserRef.current = analyser;
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        const updateSpectrum = () => {
-          if (!analyserRef.current) return;
-          analyserRef.current.getByteFrequencyData(dataArray);
-          const bands = [];
-          for (let i = 0; i < 24; i++) {
-            const raw = dataArray[i] || 0;
-            bands.push(Math.min(100, Math.round((raw / 255) * 100)));
-          }
-          setFreqBands(bands);
-          animFrameRef.current = requestAnimationFrame(updateSpectrum);
-        };
-        updateSpectrum();
 
         // Browser Speech Recognition for real spoken words
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -228,8 +224,8 @@ export default function ForensicsPanel({
     }
   };
 
-  const handleSeek = (e) => {
-    const newSec = parseFloat(e.target.value);
+  const handleSeek = (target) => {
+    const newSec = typeof target === 'number' ? target : parseFloat(target?.target?.value || 0);
     setAudioPlaybackSec(newSec);
     cyberAudioPlayer.seek(newSec);
   };
@@ -238,6 +234,16 @@ export default function ForensicsPanel({
     const vol = parseFloat(e.target.value);
     setAudioVolume(vol);
     cyberAudioPlayer.setVolume(vol);
+  };
+
+  const handleChipAction = (key, textToCopy, feedbackText) => {
+    if (textToCopy && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(textToCopy);
+    }
+    setChipFeedback((prev) => ({ ...prev, [key]: feedbackText }));
+    setTimeout(() => {
+      setChipFeedback((prev) => ({ ...prev, [key]: null }));
+    }, 2000);
   };
 
   const getEmotionColor = (emotion) => {
@@ -302,6 +308,19 @@ export default function ForensicsPanel({
 
   const timeline = activeCall?.timeline_segments || [];
 
+  const extractedEntities =
+    activeCall?.extracted_entities ||
+    activeCall?.triage_insights?.extracted_entities ||
+    {};
+
+  // Urgency Math Explainability Formula
+  const pitchDelta = Math.max(0, Math.round(biomarkers.pitch_hz - 140));
+  const detectedKws = transcript.detected_keywords || [];
+  const primaryThreat =
+    detectedKws.slice(0, 2).map((k) => k.toUpperCase()).join(', ') ||
+    (activeCall?.triage_insights?.crime_category ? activeCall.triage_insights.crime_category.slice(0, 24) : 'EXTORTION VECTOR');
+  const urgencyScore = activeCall?.urgency_score || 85;
+
   const renderHighlightedTranscript = (rawText, keywords = []) => {
     if (!rawText) return null;
     const piiRegex = /(\[REDACTED-[A-Za-z]+\])/g;
@@ -350,48 +369,48 @@ export default function ForensicsPanel({
   };
 
   return (
-    <div className="bg-white dark:bg-[#0f141e] border border-slate-200 dark:border-[#1e293b] rounded-xl flex flex-col h-full min-h-0 overflow-hidden shadow-sm transition-colors">
+    <div className="bg-white dark:bg-[#080d16] border border-slate-200 dark:border-[#1e293b] rounded-xl flex flex-col h-full min-h-0 overflow-hidden shadow-sm transition-colors">
       {/* Panel Top Mode Tabs */}
-      <div className="px-4 py-2.5 border-b border-slate-200 dark:border-[#1e293b] bg-slate-50 dark:bg-[#0b0f17] flex flex-wrap items-center justify-between gap-2.5">
+      <div className="px-3.5 py-2 border-b border-slate-200 dark:border-[#1e293b] bg-slate-50 dark:bg-[#0c121e] flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-          <h2 className="text-xs font-semibold text-slate-900 dark:text-slate-200">
-            Voice analysis
+          <Activity className="w-4 h-4 text-cyan-400" />
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+            Acoustic Forensics & Biomarker Telemetry
           </h2>
         </div>
 
         {/* Mode Switcher */}
-        <div className="flex items-center bg-slate-200/70 dark:bg-[#131b26] p-0.5 rounded-lg border border-slate-300 dark:border-[#222f44] text-xs">
+        <div className="flex items-center bg-slate-200/80 dark:bg-[#121927] p-0.5 rounded-lg border border-slate-300 dark:border-[#222f44] text-xs">
           <button
             onClick={() => setActiveTab('upload')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
               activeTab === 'upload'
-                ? 'bg-white dark:bg-slate-200 text-slate-950 font-semibold shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-300 border border-slate-300 dark:border-cyan-700/50 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
             }`}
           >
             <Upload className="w-3.5 h-3.5" />
-            <span>Upload file</span>
+            <span>Upload</span>
           </button>
 
           <button
             onClick={() => setActiveTab('mic')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
               activeTab === 'mic'
-                ? 'bg-white dark:bg-slate-200 text-slate-950 font-semibold shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-300 border border-slate-300 dark:border-cyan-700/50 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
             }`}
           >
             <Mic className="w-3.5 h-3.5" />
-            <span>Live audio</span>
+            <span>Live Mic</span>
           </button>
 
           <button
             onClick={() => setActiveTab('simulate')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
               activeTab === 'simulate'
-                ? 'bg-white dark:bg-slate-200 text-slate-950 font-semibold shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-300 border border-slate-300 dark:border-cyan-700/50 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
             }`}
           >
             <Radio className="w-3.5 h-3.5" />
@@ -401,16 +420,16 @@ export default function ForensicsPanel({
       </div>
 
       {/* Main Content Area */}
-      <div className="p-3.5 sm:p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
+      <div className="p-3 sm:p-3.5 space-y-2.5 overflow-y-auto flex-1 min-h-0">
         {/* Mode Controller */}
         {activeTab === 'upload' && (
           <form
             onSubmit={handleUploadSubmit}
-            className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] rounded-lg p-2.5 flex flex-col md:flex-row items-center gap-2"
+            className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] rounded-lg p-2.5 flex flex-col md:flex-row items-center gap-2"
           >
             <div className="flex-1 w-full flex items-center gap-2">
-              <label className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#182333] border border-slate-300 dark:border-[#2a384d] rounded-md cursor-pointer hover:border-slate-400 text-xs text-slate-700 dark:text-slate-200 shrink-0 transition-colors shadow-sm">
-                <FileAudio className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+              <label className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#141d2c] border border-slate-300 dark:border-[#24334a] rounded-md cursor-pointer hover:border-cyan-500 text-xs text-slate-700 dark:text-slate-200 shrink-0 transition-colors shadow-sm">
+                <FileAudio className="w-3.5 h-3.5 text-cyan-400" />
                 <span className="truncate max-w-[130px]">
                   {uploadFile ? uploadFile.name : 'Select .wav file'}
                 </span>
@@ -424,10 +443,10 @@ export default function ForensicsPanel({
 
               <input
                 type="text"
-                placeholder="Optional call context note..."
+                placeholder="Optional incident audio context hint..."
                 value={transcriptHint}
                 onChange={(e) => setTranscriptHint(e.target.value)}
-                className="flex-1 bg-white dark:bg-[#0b0f17] border border-slate-300 dark:border-[#222f44] rounded-md px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+                className="flex-1 bg-white dark:bg-[#080d16] border border-slate-300 dark:border-[#1e293b] rounded-md px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
               />
             </div>
 
@@ -453,7 +472,7 @@ export default function ForensicsPanel({
         )}
 
         {activeTab === 'mic' && (
-          <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] rounded-lg p-3 space-y-2">
+          <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] rounded-lg p-2.5 space-y-2">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2.5">
                 <div
@@ -465,7 +484,7 @@ export default function ForensicsPanel({
                   <p className="text-xs font-semibold text-slate-900 dark:text-slate-200">
                     {isRecording ? 'Listening via microphone' : 'Microphone standby'}
                   </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                     {liveSpeechText ? `Spoken: "${liveSpeechText}"` : 'Real-time speech recognition active'}
                   </p>
                 </div>
@@ -483,40 +502,28 @@ export default function ForensicsPanel({
                 <span>{isRecording ? 'Stop input' : 'Start microphone'}</span>
               </button>
             </div>
-
-            <div className="bg-white dark:bg-[#0b0f17] p-2 rounded border border-slate-200 dark:border-[#222f44]">
-              <div className="h-7 flex items-end gap-1 px-1">
-                {freqBands.map((val, idx) => (
-                  <div
-                    key={idx}
-                    className="flex-1 rounded-t-sm transition-all duration-75 bg-cyan-500/80"
-                    style={{ height: `${Math.max(4, isRecording ? val : 4)}%` }}
-                  ></div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
         {activeTab === 'simulate' && (
-          <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] rounded-lg p-3 space-y-2">
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
-              Simulate call escalation scenarios
+          <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] rounded-lg p-2.5 space-y-2">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 block font-semibold">
+              Simulate Tactical Cyber Threat Scenarios
             </span>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {[
-                { id: 'digital_arrest', label: 'Digital arrest', tag: 'High fear' },
-                { id: 'upi_fraud', label: 'Remote APK drain', tag: 'High distress' },
-                { id: 'distressed_victim', label: 'Sextortion threat', tag: 'Critical distress' },
-                { id: 'informant', label: 'Mule account tip', tag: 'Moderate tension' },
+                { id: 'digital_arrest', label: 'Digital arrest', tag: 'High Fear • Stage 4' },
+                { id: 'upi_fraud', label: 'Remote APK drain', tag: 'Distress • Stage 3' },
+                { id: 'distressed_victim', label: 'Sextortion threat', tag: 'Critical • Stage 2' },
+                { id: 'informant', label: 'Mule ring tip', tag: 'Tension • Stage 4' },
               ].map((scen) => (
                 <button
                   key={scen.id}
                   onClick={() => onSimulateScenario(scen.id)}
-                  className="p-2 rounded-md bg-white dark:bg-[#182333] border border-slate-200 dark:border-[#2a384d] hover:border-cyan-500 text-left transition-colors shadow-sm"
+                  className="p-2 rounded-md bg-white dark:bg-[#121927] border border-slate-200 dark:border-[#1e293b] hover:border-cyan-500 text-left transition-colors shadow-sm"
                 >
-                  <div className="text-xs font-medium text-slate-900 dark:text-slate-200">{scen.label}</div>
-                  <div className="text-[10px] text-cyan-600 dark:text-cyan-400 mt-0.5">{scen.tag}</div>
+                  <div className="text-xs font-semibold text-slate-900 dark:text-slate-200">{scen.label}</div>
+                  <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono mt-0.5">{scen.tag}</div>
                 </button>
               ))}
             </div>
@@ -525,7 +532,7 @@ export default function ForensicsPanel({
 
         {/* Audio Player Bar */}
         {activeCall && (
-          <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] rounded-lg p-2.5 flex items-center justify-between gap-3">
+          <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] rounded-lg p-2 flex items-center justify-between gap-3">
             <button
               onClick={togglePlayAudio}
               className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors shrink-0 shadow-sm ${
@@ -575,10 +582,204 @@ export default function ForensicsPanel({
           </div>
         )}
 
+        {/* Real-Time Pitch-Contour & Vocal Tremor Canvas */}
+        {(activeCall || isRecording) && (
+          <PitchContourCanvas
+            timelineSegments={timeline}
+            biomarkers={biomarkers}
+            currentTime={audioPlaybackSec}
+            duration={audioDurationSec}
+            isPlaying={isPlayingAudio || isRecording}
+            onSeek={handleSeek}
+          />
+        )}
+
+        {/* Urgency Math Breakdown Pill */}
+        {activeCall && (
+          <div className="bg-slate-900 dark:bg-[#070b12] border border-cyan-500/30 rounded-lg p-2.5 font-mono text-[11px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-sm">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+              <span className="text-[10px] font-bold text-cyan-400 bg-cyan-950/70 border border-cyan-800/60 px-1.5 py-0.5 rounded tracking-wider whitespace-nowrap">
+                FUSION FORMULA
+              </span>
+              <span className="text-slate-300 leading-snug">
+                [60% Vocal Strain: Pitch +{pitchDelta}Hz, Jitter {biomarkers.jitter_tremor_pct}%] + [40% Extortion Threat: {primaryThreat}]
+              </span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0 font-bold text-cyan-300 bg-cyan-950/90 border border-cyan-600/60 px-2 py-0.5 rounded whitespace-nowrap">
+              = Score {urgencyScore}/100
+            </div>
+          </div>
+        )}
+
+        {/* Extracted Cybercrime Entities Board */}
+        {activeCall && (
+          <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                  Extracted Cybercrime Entities Board
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded-full">
+                1-Click Response Actions
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {/* Target Amount Chip */}
+              <div className="bg-white dark:bg-[#080d16] border border-slate-200 dark:border-[#1e293b] p-2 rounded-md flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 block flex items-center gap-1">
+                    <CreditCard className="w-3 h-3 text-amber-400" />
+                    Target Amount
+                  </span>
+                  <span className="font-mono text-xs font-bold text-amber-600 dark:text-amber-300 truncate block">
+                    {extractedEntities.amount || '₹45,000'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChipAction('amount', extractedEntities.amount || '₹45,000', 'Copied!')
+                  }
+                  className="px-2 py-1 text-[10px] font-mono font-medium rounded bg-slate-100 dark:bg-[#151f30] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#28384f] hover:border-cyan-500 transition-colors shrink-0"
+                >
+                  {chipFeedback['amount'] ? (
+                    <span className="text-emerald-400 font-semibold">{chipFeedback['amount']}</span>
+                  ) : (
+                    'Copy'
+                  )}
+                </button>
+              </div>
+
+              {/* Mule UPI ID Chip */}
+              <div className="bg-white dark:bg-[#080d16] border border-slate-200 dark:border-[#1e293b] p-2 rounded-md flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 block flex items-center gap-1">
+                    <Send className="w-3 h-3 text-rose-400" />
+                    Mule UPI Handle
+                  </span>
+                  <span className="font-mono text-xs font-bold text-rose-600 dark:text-rose-300 truncate block">
+                    {extractedEntities.mule_upi || 'cbi.officer.desk@sbi'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChipAction(
+                      'mule',
+                      extractedEntities.mule_upi || 'cbi.officer.desk@sbi',
+                      'Flagged!'
+                    )
+                  }
+                  className="px-2 py-1 text-[10px] font-mono font-medium rounded bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-colors shrink-0"
+                >
+                  {chipFeedback['mule'] ? (
+                    <span className="text-emerald-400 font-semibold">{chipFeedback['mule']}</span>
+                  ) : (
+                    'Flag Mule'
+                  )}
+                </button>
+              </div>
+
+              {/* Transaction UTR Chip */}
+              <div className="bg-white dark:bg-[#080d16] border border-slate-200 dark:border-[#1e293b] p-2 rounded-md flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 block flex items-center gap-1">
+                    <FileCheck className="w-3 h-3 text-cyan-400" />
+                    Bank UTR Reference
+                  </span>
+                  <span className="font-mono text-xs font-bold text-cyan-700 dark:text-cyan-300 truncate block">
+                    {extractedEntities.utr_number || 'UTR-2026-9812-4112'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChipAction(
+                      'utr',
+                      extractedEntities.utr_number || 'UTR-2026-9812-4112',
+                      'Copied!'
+                    )
+                  }
+                  className="px-2 py-1 text-[10px] font-mono font-medium rounded bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 transition-colors shrink-0"
+                >
+                  {chipFeedback['utr'] ? (
+                    <span className="text-emerald-400 font-semibold">{chipFeedback['utr']}</span>
+                  ) : (
+                    'Copy UTR'
+                  )}
+                </button>
+              </div>
+
+              {/* Remote APK Session Chip */}
+              {extractedEntities.remote_apk ? (
+                <div className="bg-white dark:bg-[#080d16] border border-slate-200 dark:border-[#1e293b] p-2 rounded-md flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-mono uppercase text-slate-400 block flex items-center gap-1">
+                      <Smartphone className="w-3 h-3 text-purple-400" />
+                      Remote APK Session
+                    </span>
+                    <span className="font-mono text-xs font-bold text-purple-600 dark:text-purple-300 truncate block">
+                      {extractedEntities.remote_apk}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChipAction('apk', extractedEntities.remote_apk, 'Kill Sent!')
+                    }
+                    className="px-2 py-1 text-[10px] font-mono font-medium rounded bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-colors shrink-0"
+                  >
+                    {chipFeedback['apk'] ? (
+                      <span className="text-emerald-400 font-semibold">{chipFeedback['apk']}</span>
+                    ) : (
+                      'Kill APK'
+                    )}
+                  </button>
+                </div>
+              ) : null}
+
+              {/* Impersonated Agency Chip */}
+              {extractedEntities.impersonated_agency ? (
+                <div className="bg-white dark:bg-[#080d16] border border-slate-200 dark:border-[#1e293b] p-2 rounded-md flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-mono uppercase text-slate-400 block flex items-center gap-1">
+                      <Building className="w-3 h-3 text-blue-400" />
+                      Impersonated Agency
+                    </span>
+                    <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-300 truncate block">
+                      {extractedEntities.impersonated_agency}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChipAction(
+                        'agency',
+                        extractedEntities.impersonated_agency,
+                        'Flagged!'
+                      )
+                    }
+                    className="px-2 py-1 text-[10px] font-mono font-medium rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors shrink-0"
+                  >
+                    {chipFeedback['agency'] ? (
+                      <span className="text-emerald-400 font-semibold">{chipFeedback['agency']}</span>
+                    ) : (
+                      'Flag Agency'
+                    )}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+
         {/* Emotion Breakdown */}
         {activeCall ? (
           <>
-            <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] rounded-lg p-3 space-y-2">
+            <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-800 dark:text-slate-300">
                   Vocal state distribution
@@ -628,34 +829,34 @@ export default function ForensicsPanel({
               </span>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] p-2.5 rounded-lg shadow-sm">
+                <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] p-2.5 rounded-lg shadow-sm">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Pitch (F0)</span>
                   <strong className="text-sm font-semibold text-slate-900 dark:text-white block mt-0.5">{biomarkers.pitch_hz} Hz</strong>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] p-2.5 rounded-lg shadow-sm">
+                <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] p-2.5 rounded-lg shadow-sm">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Vocal tremor</span>
                   <strong className="text-sm font-semibold text-amber-600 dark:text-amber-300 block mt-0.5">{biomarkers.jitter_tremor_pct}%</strong>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] p-2.5 rounded-lg shadow-sm">
+                <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] p-2.5 rounded-lg shadow-sm">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Pace</span>
                   <strong className="text-sm font-semibold text-cyan-700 dark:text-cyan-300 block mt-0.5">{biomarkers.speech_rate_sps} syl/s</strong>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] p-2.5 rounded-lg shadow-sm">
+                <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] p-2.5 rounded-lg shadow-sm">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Loudness</span>
                   <strong className="text-sm font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">{biomarkers.rms_energy_db} dB</strong>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] p-2.5 rounded-lg shadow-sm">
+                <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] p-2.5 rounded-lg shadow-sm">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Speech activity</span>
                   <strong className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 block mt-0.5">
                     {Math.round((biomarkers.voice_activity_ratio ?? 0.85) * 100)}%
                   </strong>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] p-2.5 rounded-lg shadow-sm">
+                <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] p-2.5 rounded-lg shadow-sm">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Signal rating</span>
                   <strong className="text-sm font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
                     {Math.round((biomarkers.confidence_score ?? 0.90) * 100)}%
@@ -663,20 +864,20 @@ export default function ForensicsPanel({
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-[#131b26] px-3 py-1.5 rounded-md border border-slate-200 dark:border-[#222f44]">
+              <p className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-[#0c121e] px-3 py-1.5 rounded-md border border-slate-200 dark:border-[#1e293b]">
                 Assessment: <strong className="text-slate-900 dark:text-slate-200 font-medium">{biomarkers.vocal_anomaly}</strong>
               </p>
             </div>
 
             {/* Timeline Progression */}
-            <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] rounded-lg p-3 space-y-2">
+            <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-slate-800 dark:text-slate-300">Call progression</span>
                 <span className="text-[11px] text-slate-500">{timeline.length} segments</span>
               </div>
 
               <div className="relative">
-                <div className="flex gap-1 h-6 w-full bg-slate-200/80 dark:bg-[#0b0f17] p-1 rounded-md border border-slate-300 dark:border-[#222f44] overflow-hidden">
+                <div className="flex gap-1 h-6 w-full bg-slate-200/80 dark:bg-[#080d16] p-1 rounded-md border border-slate-300 dark:border-[#1e293b] overflow-hidden">
                   {timeline.length === 0 ? (
                     <div className="text-[11px] text-slate-500 italic px-1">
                       No segments.
@@ -707,7 +908,7 @@ export default function ForensicsPanel({
             </div>
 
             {/* Transcript Box */}
-            <div className="bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] rounded-lg p-3 space-y-2">
+            <div className="bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-[#1e293b] rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-800 dark:text-slate-300">
                   Transcript
@@ -717,7 +918,7 @@ export default function ForensicsPanel({
                 </span>
               </div>
 
-              <div className="bg-white dark:bg-[#0b0f17] border border-slate-200 dark:border-[#222f44] p-3 rounded-md text-xs leading-relaxed text-slate-800 dark:text-slate-200 min-h-[60px] shadow-sm">
+              <div className="bg-white dark:bg-[#080d16] border border-slate-200 dark:border-[#1e293b] p-3 rounded-md text-xs leading-relaxed text-slate-800 dark:text-slate-200 min-h-[60px] shadow-sm">
                 {renderHighlightedTranscript(transcript.raw_redacted, transcript.detected_keywords)}
               </div>
             </div>
@@ -725,7 +926,7 @@ export default function ForensicsPanel({
         ) : (
           <div className="h-48 flex flex-col items-center justify-center text-center p-6 text-xs text-slate-500 space-y-1.5">
             <FileCheck className="w-8 h-8 text-slate-400 mb-1" />
-            <p className="font-medium text-slate-700 dark:text-slate-300">No call selected</p>
+            <p className="font-semibold text-slate-700 dark:text-slate-300">No call selected</p>
             <p className="text-[11px] text-slate-500">
               Upload an audio file or select an active call to view vocal analysis and transcript.
             </p>
