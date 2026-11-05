@@ -67,7 +67,7 @@ export default function LandingPage({ onOpenDashboard }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('top');
   const [navScrolled, setNavScrolled] = useState(false);
-  const sections = ['top', 'about', 'workflow', 'signals', 'capabilities', 'architecture', 'safety'];
+  const sections = ['top', 'about', 'workflow', 'science', 'signals', 'capabilities', 'architecture', 'safety'];
 
   useEffect(() => {
     const updateProgress = () => {
@@ -109,6 +109,7 @@ export default function LandingPage({ onOpenDashboard }) {
         <nav className={menuOpen ? 'landing-links is-open' : 'landing-links'}>
           <a className={activeSection === 'about' ? 'is-active' : ''} href="#about" onClick={closeMenu}>About</a>
           <a className={activeSection === 'workflow' ? 'is-active' : ''} href="#workflow" onClick={closeMenu}>How it works</a>
+          <a className={activeSection === 'science' ? 'is-active' : ''} href="#science" onClick={closeMenu}>Speech science</a>
           <a className={activeSection === 'signals' ? 'is-active' : ''} href="#signals" onClick={closeMenu}>Voice signals</a>
           <a className={activeSection === 'architecture' ? 'is-active' : ''} href="#architecture" onClick={closeMenu}>Conversation workflow</a>
           <a className={activeSection === 'safety' ? 'is-active' : ''} href="#safety" onClick={closeMenu}>Safety</a>
@@ -153,7 +154,7 @@ export default function LandingPage({ onOpenDashboard }) {
           <div className="section-label">03 / CONVERSATION WORKFLOW</div>
           <div className="section-heading-row">
             <h2>From voice to<br /><em>verified response.</em></h2>
-            <p>One connected view for the moments that cannot wait.</p>
+            <p>Every signal has a place in the journey from spoken conversation to human-reviewed incident information.</p>
           </div>
           <Reveal className="workflow-list">
             <div className="workflow-progress-line"><span /></div>
@@ -168,9 +169,29 @@ export default function LandingPage({ onOpenDashboard }) {
           </Reveal>
         </section>
 
+        <section className="science-section content-section" id="science">
+          <div className="section-label">04 / SPEECH SCIENCE</div>
+          <Reveal className="science-heading">
+            <h2>The science behind<br /><em>every voice.</em></h2>
+            <p>Speech is shaped by physical movement, acoustic energy and the rhythm of conversation. VECNA-Pulse helps operators organize available signals without turning them into definitive judgments.</p>
+          </Reveal>
+          <div className="science-grid">
+            {[
+              ['Articulation', 'Lips, tongue, jaw and vocal tract shape the sound we hear.'],
+              ['Frequency', 'Pitch and frequency show measurable changes across a spoken segment.'],
+              ['Intensity', 'Loudness and energy variation add context to an audio signal.'],
+              ['Rhythm', 'Pace, pauses and interruptions help structure a conversation timeline.'],
+            ].map(([title, copy], index) => (
+              <Reveal className="science-item" key={title}>
+                <span>0{index + 1}</span><div className={`science-mark science-mark-${index + 1}`} /><h3>{title}</h3><p>{copy}</p>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
         <section className="signals-section content-section" id="signals">
-          <div className="section-label">04 / THE SIGNALS</div>
-          <Reveal className="signal-heading"><h2>The science behind<br /><em>every voice.</em></h2><p>Observable acoustic features can help an operator organize attention. They are supporting signals, not conclusions about a person's internal state.</p></Reveal>
+          <div className="section-label">05 / VOCAL SIGNALS</div>
+          <Reveal className="signal-heading"><h2>Reading the signals<br /><em>within speech.</em></h2><p>Observable acoustic features can help an operator organize attention. They are supporting signals, not conclusions about a person's internal state.</p></Reveal>
           <Reveal className="signal-board">
             <div className="signal-board-label">LIVE ACOUSTIC VIEW <span>INDICATIVE</span></div>
             <div className="waveform-visual">{Array.from({ length: 42 }, (_, index) => <i key={index} style={{ height: `${18 + Math.abs(Math.sin(index * 0.72)) * 62}%` }} />)}</div>
@@ -179,7 +200,7 @@ export default function LandingPage({ onOpenDashboard }) {
         </section>
 
         <section className="capabilities-section content-section" id="capabilities">
-          <div className="section-label">05 / VOICE CAPABILITIES</div>
+          <div className="section-label">06 / VOICE CAPABILITIES</div>
           <Reveal className="capability-intro"><h2>One voice.<br /><em>Multiple insights.</em></h2><p>Designed to support trained people, not replace them.</p></Reveal>
           <Reveal className="capability-grid">
             {capabilityStats.map(([number, title, copy]) => (
@@ -189,7 +210,7 @@ export default function LandingPage({ onOpenDashboard }) {
         </section>
 
         <section className="architecture-section content-section" id="architecture">
-          <div className="section-label">06 / THE SYSTEM</div>
+          <div className="section-label">07 / THE SYSTEM</div>
           <Reveal className="architecture-copy"><h2>Inside the voice<br /><em>intelligence workflow.</em></h2><p>The actual product flow, from available voice input to a human-reviewed response record.</p></Reveal>
           <Reveal className="data-flow">
             {['Voice input', 'Audio processing', 'Transcription / vocal analysis', 'Structured incident information', 'Human verification', 'Response coordination', 'Incident records'].map((step, index) => (
@@ -200,12 +221,14 @@ export default function LandingPage({ onOpenDashboard }) {
 
         <section className="safety-section content-section" id="safety">
           <div className="safety-seal"><ShieldCheck size={25} /><span>Human<br />verified</span></div>
-          <div><div className="section-label">07 / THE GUARDRAIL</div><h2>Signals support.<br /><em>Humans decide.</em></h2><p>Automated voice analysis provides supporting information. Vocal cues alone cannot establish the truth or severity of an emergency. Audio quality, language, accent, environment and speaking conditions can affect analysis. Incident details require human verification.</p></div>
+          <Reveal><div className="section-label">08 / THE GUARDRAIL</div><h2>Technology assists.<br /><em>Humans verify.</em></h2><p>Automated voice analysis provides supporting information. Vocal cues are not definitive evidence of emotional state. Speech analysis can contain errors, and audio quality, language, accent, environment and speaking conditions can affect analysis. Operators must review relevant information before making response decisions.</p></Reveal>
         </section>
 
         <section className="closing-section">
-          <p className="eyebrow">Ready when the call comes in</p>
-          <h2>Make the next<br /><em>second count.</em></h2>
+          <p className="eyebrow">The conversation continues</p>
+          <div className="closing-wave" aria-hidden="true">{Array.from({ length: 22 }, (_, index) => <i key={index} style={{ height: `${18 + Math.abs(Math.sin(index * 0.8)) * 65}%` }} />)}</div>
+          <h2>Listen beyond<br /><em>the words.</em></h2>
+          <p className="closing-copy">Explore voice analysis, speech understanding, and human-verified emergency response coordination.</p>
           <button className="button-primary" onClick={onOpenDashboard}>Launch VECNA-Pulse <ArrowRight size={17} /></button>
         </section>
       </main>
