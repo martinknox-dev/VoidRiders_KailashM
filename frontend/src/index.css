@@ -94,8 +94,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 .text-link { color: var(--navy); display: inline-flex; gap: 8px; align-items: center; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; }
 .hero-footnote { color: #7e867f; display: flex; align-items: center; gap: 7px; font-size: 10px; margin-top: 54px; }
 .architecture-stage { position: absolute; right: 2%; top: 14%; width: 53%; height: 75%; min-height: 470px; perspective: 1300px; }
+.architecture-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+.architecture-canvas.is-fallback { display: none; }
 .architecture-grid { position: absolute; inset: 9% 3% 6%; background: linear-gradient(rgba(71,124,121,.13) 1px, transparent 1px), linear-gradient(90deg, rgba(71,124,121,.13) 1px, transparent 1px); background-size: 36px 36px; transform: perspective(450px) rotateX(58deg) rotateZ(-8deg); mask-image: linear-gradient(transparent, black 22%, black 70%, transparent); }
-.architecture-model { position: absolute; left: 50%; top: 46%; width: 390px; height: 310px; transform-style: preserve-3d; transform: translate(-50%, -50%) rotateX(11deg) rotateY(var(--model-rotation)); transition: transform .18s ease-out; }
+.architecture-model { position: absolute; left: 50%; top: 46%; width: 390px; height: 310px; transform-style: preserve-3d; transform: translate(-50%, -50%) rotateX(11deg) rotateY(var(--model-rotation)); transition: transform .18s ease-out; z-index: 0; }
+.architecture-canvas:not(.is-fallback) ~ .architecture-grid,
+.architecture-canvas:not(.is-fallback) ~ .architecture-model { opacity: 0; pointer-events: none; }
 .model-shadow { position: absolute; width: 430px; height: 90px; background: rgba(17,26,37,.17); filter: blur(20px); transform: translate(-20px, 220px) rotateX(65deg); }
 .model-plinth { position: absolute; left: 25px; bottom: 12px; width: 340px; height: 37px; background: #b3a78d; transform: skewX(-38deg); box-shadow: 20px 11px 0 #847c6a; }
 .model-wing { position: absolute; bottom: 48px; width: 135px; height: 125px; background: linear-gradient(90deg, #c4b9a2, #dfd6c5 45%, #9f937d); border-top: 8px solid #dcd1bc; transform: translateZ(8px); }

@@ -129,10 +129,13 @@ function ArchitecturalScene({ progress }) {
     };
     resize();
     draw(progress);
+    const onProgress = (event) => draw(event.detail);
+    canvas.addEventListener('architecture-progress', onProgress);
     const observer = new ResizeObserver(resize);
     observer.observe(canvas.parentElement);
     return () => {
       observer.disconnect();
+      canvas.removeEventListener('architecture-progress', onProgress);
       renderer.dispose();
       scene.traverse((object) => {
         if (object.geometry) object.geometry.dispose();
