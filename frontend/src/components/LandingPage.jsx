@@ -14,16 +14,21 @@ import {
 
 const workflow = [
   ['01', 'Voice capture', 'Receive an uploaded recording or supported live microphone input.'],
-  ['02', 'Speech processing', 'Turn available audio into a redacted, searchable transcript.'],
-  ['03', 'Vocal analysis', 'Surface acoustic cues that can help operators prioritize attention.'],
-  ['04', 'Incident understanding', 'Organize the available evidence into an actionable case brief.'],
-  ['05', 'Verified response', 'Keep a human in the loop while coordinating the next response.'],
+  ['02', 'Audio processing', 'Prepare available recordings for analysis.'],
+  ['03', 'Voice analysis', 'Surface acoustic cues that can help operators prioritize attention.'],
+  ['04', 'Incident understanding', 'Organize transcription and incident details.'],
+  ['05', 'Human verification', 'Present signals and context for operator review.'],
+  ['06', 'Response coordination', 'Support incident organization and record management.'],
 ];
 
 const capabilityStats = [
-  ['01', 'Audio intake', 'WAV uploads and live microphone capture'],
-  ['02', 'Signal layer', 'Pitch, cadence, jitter, loudness and activity'],
-  ['03', 'Response desk', 'Queue, triage advisory and incident log'],
+  ['01', 'Intelligent voice intake', 'WAV uploads and live microphone capture'],
+  ['02', 'Recorded audio analysis', 'Client-side or connected processing for uploaded calls'],
+  ['03', 'Live audio input', 'Supported microphone streaming for active calls'],
+  ['04', 'Voice analysis', 'Pitch, cadence, jitter, loudness and activity signals'],
+  ['05', 'Incident queue management', 'Prioritized active calls and saved cases'],
+  ['06', 'Scenario simulation', 'Controlled demo scenarios and surge testing'],
+  ['07', 'Response records', 'Operator notes, incident logs and case export'],
 ];
 
 function ArchitecturalModel({ progress }) {
@@ -96,6 +101,7 @@ export default function LandingPage({ onOpenDashboard }) {
           <a href="#about" onClick={closeMenu}>About</a>
           <a href="#workflow" onClick={closeMenu}>Workflow</a>
           <a href="#capabilities" onClick={closeMenu}>Capabilities</a>
+          <a href="#architecture" onClick={closeMenu}>Architecture</a>
           <a href="#safety" onClick={closeMenu}>Safety</a>
           <button className="nav-cta" onClick={() => { closeMenu(); onOpenDashboard(); }}>
             Open dashboard <ArrowRight size={15} />
@@ -128,7 +134,7 @@ export default function LandingPage({ onOpenDashboard }) {
             <h2>Built for the<br /><em>golden hour.</em></h2>
             <div>
               <p className="large-copy">When an emergency call arrives, clarity is a response capability.</p>
-              <p>VECNA-Pulse is an investigative workstation for operators who need to listen closely, organize incident context, and move with confidence. It brings audio intake, vocal biomarkers, triage signals and response notes into one focused desk.</p>
+              <p>VECNA-Pulse is an investigative workstation for operators who need to listen closely, organize incident context, and move with confidence. It brings audio intake, available vocal signals, triage advisories and response notes into one focused desk.</p>
               <button className="outline-button" onClick={onOpenDashboard}>Enter the operations desk <ArrowRight size={16} /></button>
             </div>
           </div>
@@ -157,14 +163,24 @@ export default function LandingPage({ onOpenDashboard }) {
           <div className="capability-intro"><h2>Signals become<br /><em>situational clarity.</em></h2><p>Designed to support trained people, not replace them.</p></div>
           <div className="capability-grid">
             {capabilityStats.map(([number, title, copy]) => (
-              <div className="capability-card" key={number}><span>{number}</span><Building2 size={19} /><h3>{title}</h3><p>{copy}</p></div>
+              <div className="capability-card" key={number}><span>{number}</span><Building2 size={19} /><h3>{title}</h3><p>{copy}</p><button onClick={onOpenDashboard}>View in dashboard <ArrowRight size={13} /></button></div>
+            ))}
+          </div>
+        </section>
+
+        <section className="architecture-section content-section" id="architecture">
+          <div className="section-label">05 / THE SYSTEM</div>
+          <div className="architecture-copy"><h2>Inside the<br /><em>architecture.</em></h2><p>The actual product flow, from available voice input to a human-reviewed response record.</p></div>
+          <div className="data-flow">
+            {['Voice input', 'Audio processing', 'Transcription / vocal analysis', 'Structured incident information', 'Human verification', 'Response coordination', 'Incident records'].map((step, index) => (
+              <div className="data-flow-step" key={step}><span>{String(index + 1).padStart(2, '0')}</span><strong>{step}</strong>{index < 6 && <ArrowDownRight size={16} />}</div>
             ))}
           </div>
         </section>
 
         <section className="safety-section content-section" id="safety">
           <div className="safety-seal"><ShieldCheck size={25} /><span>Human<br />verified</span></div>
-          <div><div className="section-label">05 / THE GUARDRAIL</div><h2>Technology with<br /><em>responsibility.</em></h2><p>Vocal emotion and urgency metrics are indicative triage signals. They assist queue prioritization — they are not definitive evidence of intent, honesty or guilt.</p></div>
+          <div><div className="section-label">06 / THE GUARDRAIL</div><h2>Technology with<br /><em>responsibility.</em></h2><p>Automated voice analysis provides supporting information. Vocal cues alone cannot establish the truth or severity of an emergency. Incident details require human verification, and operators remain responsible for decisions.</p></div>
         </section>
 
         <section className="closing-section">

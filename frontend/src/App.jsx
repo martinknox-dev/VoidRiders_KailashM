@@ -17,7 +17,8 @@ import LandingPage from './components/LandingPage';
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(() => {
-    return new URLSearchParams(window.location.search).get('dashboard') !== 'true';
+    return window.location.pathname !== '/dashboard' &&
+      new URLSearchParams(window.location.search).get('dashboard') !== 'true';
   });
   // Theme state: dark / light
   const [theme, setTheme] = useState(() => {
@@ -522,7 +523,7 @@ export default function App() {
   if (showLanding) {
     return <LandingPage onOpenDashboard={() => {
       setShowLanding(false);
-      window.history.replaceState({}, '', `${window.location.pathname}?dashboard=true`);
+      window.history.pushState({}, '', '/dashboard');
       window.scrollTo(0, 0);
     }} />;
   }
