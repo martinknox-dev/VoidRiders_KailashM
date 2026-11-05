@@ -13,8 +13,12 @@ import { saveCaseToDevice, getAllSavedCases, deleteSavedCase } from './services/
 import { cyberAudioPlayer } from './services/audioSynthesizer';
 import { callSiliconFlowSTT, callGroqWhisperSTT } from './services/cloudServices';
 import AnalyzingOverlay from './components/AnalyzingOverlay';
+import LandingPage from './components/LandingPage';
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(() => {
+    return new URLSearchParams(window.location.search).get('dashboard') !== 'true';
+  });
   // Theme state: dark / light
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('vecna_theme') || 'dark';
@@ -514,6 +518,14 @@ export default function App() {
     }
     await loadSavedCases();
   };
+
+  if (showLanding) {
+    return <LandingPage onOpenDashboard={() => {
+      setShowLanding(false);
+      window.history.replaceState({}, '', `${window.location.pathname}?dashboard=true`);
+      window.scrollTo(0, 0);
+    }} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100/60 dark:bg-[#070a10] text-slate-900 dark:text-slate-100 font-sans selection:bg-cyan-500 selection:text-black transition-colors duration-200">
