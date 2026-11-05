@@ -529,7 +529,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100/60 dark:bg-[#070a10] text-slate-900 dark:text-slate-100 font-sans selection:bg-cyan-500 selection:text-black transition-colors duration-200">
+    <div className="dashboard-theme min-h-screen flex flex-col bg-slate-100/60 dark:bg-[#070a10] text-slate-900 dark:text-slate-100 font-sans selection:bg-cyan-500 selection:text-black transition-colors duration-200">
       {/* Top Header */}
       <Header
         isMockMode={isMockMode}
