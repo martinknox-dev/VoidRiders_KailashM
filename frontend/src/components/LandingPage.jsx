@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as THREE from 'three';
 import {
   ArrowDownRight,
   ArrowRight,
@@ -31,12 +32,132 @@ const capabilityStats = [
   ['07', 'Response records', 'Operator notes, incident logs and case export'],
 ];
 
+function ArchitecturalScene({ progress }) {
+  const canvasRef = React.useRef(null);
+  const [supported, setSupported] = useState(true);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setSupported(false);
+      return undefined;
+    }
+
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'low-power' });
+    } catch {
+      setSupported(false);
+      return undefined;
+    }
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+    const building = new THREE.Group();
+    scene.add(building);
+
+    const limestone = new THREE.MeshStandardMaterial({ color: 0xcfc3ad, roughness: 0.82 });
+    const stoneLight = new THREE.MeshStandardMaterial({ color: 0xe9e0cf, roughness: 0.75 });
+    const brass = new THREE.MeshStandardMaterial({ color: 0xb18b56, metalness: 0.65, roughness: 0.35 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x111a25, roughness: 0.45 });
+    const teal = new THREE.MeshStandardMaterial({ color: 0x477c79, emissive: 0x173a3a, emissiveIntensity: 0.8 });
+
+    const box = (size, position, material, parent = building) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+      mesh.position.set(...position);
+      parent.add(mesh);
+      return mesh;
+    };
+    const cylinder = (radius, height, position, material, segments = 16, parent = building) => {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, segments), material);
+      mesh.position.set(...position);
+      parent.add(mesh);
+      return mesh;
+    };
+
+    box([8.8, 0.55, 4], [0, -2.35, 0], limestone);
+    box([7.7, 0.35, 3.4], [0, -2.02, 0], stoneLight);
+    box([3.2, 2.8, 2.4], [0, -0.5, 0], stoneLight);
+    box([2.2, 1.8, 2.05], [0, 0.9, 0], limestone);
+    box([2.8, 0.35, 2.7], [0, 1.85, 0], stoneLight);
+    box([2.8, 0.22, 2.7], [0, 2.12, 0], brass);
+    [-3.1, 3.1].forEach((x) => {
+      box([2.6, 2.5, 2.8], [x, -0.75, 0], limestone);
+      box([2.9, 0.22, 3.1], [x, 0.55, 0], stoneLight);
+      [-0.8, 0, 0.8].forEach((z) => box([0.24, 1.2, 0.12], [x, -0.75, z], teal));
+    });
+    [-1.25, -0.42, 0.42, 1.25].forEach((x) => {
+      cylinder(0.18, 2.8, [x, -0.65, 1.32], stoneLight, 12);
+      cylinder(0.24, 0.12, [x, 0.8, 1.32], brass, 12);
+    });
+    box([1.25, 1.65, 0.14], [0, -0.82, 1.43], dark);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(1.38, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), stoneLight);
+    dome.position.set(0, 2.35, 0);
+    building.add(dome);
+    cylinder(0.14, 0.45, [0, 3.65, 0], brass, 12);
+
+    const interior = new THREE.Group();
+    interior.visible = false;
+    building.add(interior);
+    box([4.3, 0.08, 1.6], [0, -0.15, 0], dark, interior);
+    [-1.5, 0, 1.5].forEach((x) => {
+      box([0.9, 0.5, 0.45], [x, 0.25, 0], teal, interior);
+      box([0.65, 0.02, 0.32], [x, 0.53, 0], brass, interior);
+    });
+
+    scene.add(new THREE.AmbientLight(0xfff5df, 2.1));
+    const keyLight = new THREE.DirectionalLight(0xb9d7d0, 3);
+    keyLight.position.set(4, 8, 7);
+    scene.add(keyLight);
+
+    const resize = () => {
+      const { width, height } = canvas.parentElement.getBoundingClientRect();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+    const draw = (value) => {
+      const interiorProgress = Math.max(0, (value - 0.25) / 0.5);
+      building.rotation.y = -0.35 + value * 1.2;
+      building.position.y = -0.1 + interiorProgress * 0.25;
+      interior.visible = interiorProgress > 0.18;
+      interior.scale.setScalar(0.8 + interiorProgress * 0.35);
+      camera.position.set(7.5 - interiorProgress * 2.5, 3.5 + interiorProgress * 1.3, 10 - interiorProgress * 3);
+      camera.lookAt(0, 0.3, 0);
+      renderer.render(scene, camera);
+    };
+    resize();
+    draw(progress);
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas.parentElement);
+    return () => {
+      observer.disconnect();
+      renderer.dispose();
+      scene.traverse((object) => {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) object.material.dispose();
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas && supported) {
+      canvas.dispatchEvent(new CustomEvent('architecture-progress', { detail: progress }));
+    }
+  }, [progress, supported]);
+
+  return <canvas ref={canvasRef} className={supported ? 'architecture-canvas' : 'architecture-canvas is-fallback'} aria-hidden="true" />;
+}
+
 function ArchitecturalModel({ progress }) {
   const rotation = -14 + progress * 42;
   const reveal = 0.18 + progress * 0.82;
 
   return (
     <div className="architecture-stage" aria-label="Interactive architectural model of the VECNA-Pulse response center">
+      <ArchitecturalScene progress={progress} />
       <div className="architecture-grid" />
       <div className="architecture-model" style={{ '--model-rotation': `${rotation}deg`, '--reveal': reveal }}>
         <div className="model-shadow" />
