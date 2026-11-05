@@ -65,3 +65,5 @@ npm run dev
 
 ### Static Hosting (Vercel)
 Set root directory to `frontend` and deploy. No environment variables required.
+
+By Abhishek Sharma or team members 
