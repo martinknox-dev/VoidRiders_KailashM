@@ -101,8 +101,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 .architecture-canvas:not(.is-fallback) ~ .architecture-grid,
 .architecture-canvas:not(.is-fallback) ~ .architecture-model { opacity: 0; pointer-events: none; }
 .voice-stage { position: absolute; right: 2%; top: 12%; width: 53%; height: 77%; min-height: 470px; perspective: 1300px; background: radial-gradient(circle at 54% 46%, rgba(177,139,86,.18), transparent 42%); }
-.voice-stage .architecture-canvas { cursor: grab; touch-action: none; }
-.voice-stage .architecture-canvas.is-dragging { cursor: grabbing; }
+.voice-reference-image { position: absolute; inset: 3% 7% 7%; width: 86%; height: 90%; object-fit: contain; object-position: center; filter: drop-shadow(0 26px 26px rgba(16, 25, 35, .18)); }
+.voice-stage .architecture-caption { z-index: 3; }
 .voice-stage .architecture-canvas { z-index: 2; }
 .voice-stage .architecture-caption { z-index: 3; }
 .signals-section { background: #101923; color: #f1ede4; }
