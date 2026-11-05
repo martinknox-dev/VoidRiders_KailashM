@@ -32,6 +32,23 @@ const capabilityStats = [
   ['07', 'Incident records', 'Operator notes, response logs and case export'],
 ];
 
+function Reveal({ children, className = '' }) {
+  const ref = React.useRef(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        node.classList.add('is-visible');
+        observer.unobserve(node);
+      }
+    }, { threshold: 0.14 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return <div ref={ref} className={`scroll-reveal ${className}`}>{children}</div>;
+}
+
 function VoiceModel({ progress }) {
   return (
     <div className="voice-stage" aria-label="Interactive three-dimensional human speech model">
@@ -48,22 +65,40 @@ function VoiceModel({ progress }) {
 export default function LandingPage({ onOpenDashboard }) {
   const [progress, setProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('top');
+  const [navScrolled, setNavScrolled] = useState(false);
+  const sections = ['top', 'about', 'workflow', 'signals', 'capabilities', 'architecture', 'safety'];
 
   useEffect(() => {
     const updateProgress = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       setProgress(max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0);
+      setNavScrolled(window.scrollY > 24);
     };
     updateProgress();
     window.addEventListener('scroll', updateProgress, { passive: true });
     return () => window.removeEventListener('scroll', updateProgress);
   }, []);
 
+  useEffect(() => {
+    const observers = sections.slice(1).map((id) => {
+      const element = document.getElementById(id);
+      if (!element) return null;
+      const observer = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) setActiveSection(id);
+      }, { rootMargin: '-35% 0px -55% 0px' });
+      observer.observe(element);
+      return observer;
+    }).filter(Boolean);
+    return () => observers.forEach((observer) => observer.disconnect());
+  }, []);
+
   const closeMenu = () => setMenuOpen(false);
 
   return (
     <div className="landing-page">
-      <header className="landing-nav">
+      <div className="page-progress"><span style={{ transform: `scaleX(${progress})` }} /></div>
+      <header className={`landing-nav ${navScrolled ? 'is-scrolled' : ''}`}>
         <a className="landing-brand" href="#top" onClick={closeMenu}>
           <span className="brand-mark"><span /></span>
           <span>VECNA<span className="brand-accent">-Pulse</span></span>
@@ -72,11 +107,11 @@ export default function LandingPage({ onOpenDashboard }) {
           {menuOpen ? <X /> : <Menu />}
         </button>
         <nav className={menuOpen ? 'landing-links is-open' : 'landing-links'}>
-          <a href="#about" onClick={closeMenu}>About</a>
-          <a href="#workflow" onClick={closeMenu}>How it works</a>
-          <a href="#signals" onClick={closeMenu}>Voice signals</a>
-          <a href="#architecture" onClick={closeMenu}>Conversation workflow</a>
-          <a href="#safety" onClick={closeMenu}>Safety</a>
+          <a className={activeSection === 'about' ? 'is-active' : ''} href="#about" onClick={closeMenu}>About</a>
+          <a className={activeSection === 'workflow' ? 'is-active' : ''} href="#workflow" onClick={closeMenu}>How it works</a>
+          <a className={activeSection === 'signals' ? 'is-active' : ''} href="#signals" onClick={closeMenu}>Voice signals</a>
+          <a className={activeSection === 'architecture' ? 'is-active' : ''} href="#architecture" onClick={closeMenu}>Conversation workflow</a>
+          <a className={activeSection === 'safety' ? 'is-active' : ''} href="#safety" onClick={closeMenu}>Safety</a>
           <button className="nav-cta" onClick={() => { closeMenu(); onOpenDashboard(); }}>
             Open dashboard <ArrowRight size={15} />
           </button>
@@ -85,7 +120,7 @@ export default function LandingPage({ onOpenDashboard }) {
 
       <main id="top">
         <section className="landing-hero">
-          <div className="hero-copy">
+          <div className="hero-copy hero-enter">
             <p className="eyebrow"><span className="eyebrow-dot" /> Voice intelligence / 01</p>
             <h1>Beyond words.<br /><em>Into the</em><br />voice.</h1>
             <p className="hero-description">
@@ -104,14 +139,14 @@ export default function LandingPage({ onOpenDashboard }) {
 
         <section className="intro-section content-section" id="about">
           <div className="section-label">02 / THE PURPOSE</div>
-          <div className="intro-content">
+          <Reveal className="intro-content">
             <h2>Every conversation<br /><em>carries signals.</em></h2>
             <div>
               <p className="large-copy">When an emergency call arrives, clarity is a response capability.</p>
               <p>VECNA-Pulse is an investigative workstation for operators who need to listen closely, organize incident context, and move with confidence. It brings audio intake, available vocal signals, triage advisories and response notes into one focused desk.</p>
               <button className="outline-button" onClick={onOpenDashboard}>Enter the operations desk <ArrowRight size={16} /></button>
             </div>
-          </div>
+          </Reveal>
         </section>
 
         <section className="workflow-section content-section" id="workflow">
@@ -120,7 +155,8 @@ export default function LandingPage({ onOpenDashboard }) {
             <h2>From voice to<br /><em>verified response.</em></h2>
             <p>One connected view for the moments that cannot wait.</p>
           </div>
-          <div className="workflow-list">
+          <Reveal className="workflow-list">
+            <div className="workflow-progress-line"><span /></div>
             {workflow.map(([number, title, copy]) => (
               <div className="workflow-item" key={number}>
                 <span className="workflow-number">{number}</span>
@@ -129,37 +165,37 @@ export default function LandingPage({ onOpenDashboard }) {
                 <ArrowRight className="workflow-arrow" size={18} />
               </div>
             ))}
-          </div>
+          </Reveal>
         </section>
 
         <section className="signals-section content-section" id="signals">
           <div className="section-label">04 / THE SIGNALS</div>
-          <div className="signal-heading"><h2>The signals behind<br /><em>every voice.</em></h2><p>Observable acoustic features can help an operator organize attention. They are supporting signals, not conclusions about a person's internal state.</p></div>
-          <div className="signal-board">
+          <Reveal className="signal-heading"><h2>The science behind<br /><em>every voice.</em></h2><p>Observable acoustic features can help an operator organize attention. They are supporting signals, not conclusions about a person's internal state.</p></Reveal>
+          <Reveal className="signal-board">
             <div className="signal-board-label">LIVE ACOUSTIC VIEW <span>INDICATIVE</span></div>
             <div className="waveform-visual">{Array.from({ length: 42 }, (_, index) => <i key={index} style={{ height: `${18 + Math.abs(Math.sin(index * 0.72)) * 62}%` }} />)}</div>
             <div className="signal-metrics"><span><b>04.8</b> speech rate / sps</span><span><b>284</b> pitch / hz</span><span><b>−10.8</b> intensity / db</span><span><b>00:08</b> active segment</span></div>
-          </div>
+          </Reveal>
         </section>
 
         <section className="capabilities-section content-section" id="capabilities">
           <div className="section-label">05 / VOICE CAPABILITIES</div>
-          <div className="capability-intro"><h2>Signals become<br /><em>situational clarity.</em></h2><p>Designed to support trained people, not replace them.</p></div>
-          <div className="capability-grid">
+          <Reveal className="capability-intro"><h2>One voice.<br /><em>Multiple insights.</em></h2><p>Designed to support trained people, not replace them.</p></Reveal>
+          <Reveal className="capability-grid">
             {capabilityStats.map(([number, title, copy]) => (
               <div className="capability-card" key={number}><span>{number}</span><Building2 size={19} /><h3>{title}</h3><p>{copy}</p><button onClick={onOpenDashboard}>View in dashboard <ArrowRight size={13} /></button></div>
             ))}
-          </div>
+          </Reveal>
         </section>
 
         <section className="architecture-section content-section" id="architecture">
           <div className="section-label">06 / THE SYSTEM</div>
-          <div className="architecture-copy"><h2>Inside the voice<br /><em>intelligence workflow.</em></h2><p>The actual product flow, from available voice input to a human-reviewed response record.</p></div>
-          <div className="data-flow">
+          <Reveal className="architecture-copy"><h2>Inside the voice<br /><em>intelligence workflow.</em></h2><p>The actual product flow, from available voice input to a human-reviewed response record.</p></Reveal>
+          <Reveal className="data-flow">
             {['Voice input', 'Audio processing', 'Transcription / vocal analysis', 'Structured incident information', 'Human verification', 'Response coordination', 'Incident records'].map((step, index) => (
               <div className="data-flow-step" key={step}><span>{String(index + 1).padStart(2, '0')}</span><strong>{step}</strong>{index < 6 && <ArrowDownRight size={16} />}</div>
             ))}
-          </div>
+          </Reveal>
         </section>
 
         <section className="safety-section content-section" id="safety">
