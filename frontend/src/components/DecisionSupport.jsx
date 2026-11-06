@@ -59,9 +59,14 @@ export default function DecisionSupport({
   const actions = (copilotData && copilotData.updated_actions) || insights.recommended_actions || [];
 
   const toggleAction = (idx) => {
+    if (!activeCall) return;
+    const cid = activeCall.call_id;
     setCompletedActions((prev) => ({
       ...prev,
-      [idx]: !prev[idx],
+      [cid]: {
+        ...(prev[cid] || {}),
+        [idx]: !prev[cid]?.[idx],
+      },
     }));
   };
 
@@ -389,13 +394,13 @@ export default function DecisionSupport({
                   Response Playbook
                 </span>
                 <span className="text-[10px] text-[#8C969E]">
-                  {Object.values(completedActions).filter(Boolean).length} / {actions.length} Completed
+                  {Object.values(completedActions[activeCall.call_id] || {}).filter(Boolean).length} / {actions.length} Completed
                 </span>
               </div>
 
               <div className="space-y-1.5 font-sans">
                 {actions.map((act, idx) => {
-                  const isChecked = !!completedActions[idx];
+                  const isChecked = !!(completedActions[activeCall.call_id]?.[idx]);
                   return (
                     <div
                       key={idx}

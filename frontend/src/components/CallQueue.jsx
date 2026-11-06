@@ -98,6 +98,11 @@ export default function CallQueue({
       setMicPermission('standby');
     } else {
       // Start recording - requests permission ONLY here!
+      if (!navigator?.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setMicPermission('denied');
+        alert('Microphone input is not supported in this browser environment or requires HTTPS/localhost.');
+        return;
+      }
       try {
         setMicLiveText('');
         capturedWordsRef.current = '';
@@ -203,7 +208,8 @@ export default function CallQueue({
       const matchTag = call.caller_tag?.toLowerCase().includes(q);
       const matchText = call.transcript?.raw_redacted?.toLowerCase().includes(q);
       const matchCrime = call.triage_insights?.crime_category?.toLowerCase().includes(q);
-      if (!matchId && !matchTag && !matchText && !matchCrime) return false;
+      const matchEmotion = call.dominant_emotion?.toLowerCase().includes(q);
+      if (!matchId && !matchTag && !matchText && !matchCrime && !matchEmotion) return false;
     }
 
     // Urgency level filter
