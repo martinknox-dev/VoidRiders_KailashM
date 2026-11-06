@@ -1,21 +1,15 @@
 import React from 'react';
-import { ShieldAlert, Settings, Cpu, HardDrive, Radio, Sun, Moon, ToggleLeft, ToggleRight } from 'lucide-react';
-import { MODEL_TIERS } from '../services/hardwareEngine';
+import { ShieldAlert, Settings, Radio, Sun, Moon, ToggleLeft, ToggleRight } from 'lucide-react';
 
 export default function Header({
   isMockMode,
   setIsMockMode,
   onOpenSettings,
-  onOpenHardwareWizard,
   provider,
   backendConnected,
-  currentTier,
-  storageInfo,
   theme,
   setTheme
 }) {
-  const activeTier = MODEL_TIERS[currentTier] || MODEL_TIERS.MID_RANGE;
-
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
@@ -66,26 +60,6 @@ export default function Header({
             ) : (
               <Moon className="w-4 h-4 text-slate-600" />
             )}
-          </button>
-
-          {/* Hardware execution profile */}
-          <button
-            onClick={onOpenHardwareWizard}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-[#131b26] border border-slate-200 dark:border-[#27354a] text-slate-700 dark:text-slate-200 hover:border-cyan-500/60 transition-colors"
-            title="Configure system execution profile and local model cache"
-          >
-            <Cpu className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-            <span className="text-[11px] font-medium">{activeTier.name}</span>
-          </button>
-
-          {/* Local cache size */}
-          <button
-            onClick={onOpenHardwareWizard}
-            className="hidden xl:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-[#131b26] border border-slate-200 dark:border-[#27354a] text-slate-600 dark:text-slate-300 hover:border-slate-400 transition-colors"
-            title="Local browser storage cache"
-          >
-            <HardDrive className="w-3.5 h-3.5 text-slate-400" />
-            <span className="font-mono text-[11px]">{storageInfo?.usageMB || 0} MB</span>
           </button>
 
           {/* Demo Mode Toggle */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Key } from 'lucide-react';
+import { X, Key, Cpu, ChevronRight } from 'lucide-react';
 
 export default function SettingsModal({
   isOpen,
@@ -8,12 +8,13 @@ export default function SettingsModal({
   setProvider,
   apiKey,
   setApiKey,
+  onOpenHardwareWizard,
 }) {
-  if (!isOpen) return null;
-
   const [tempProvider, setTempProvider] = useState(provider || 'offline');
   const [tempApiKey, setTempApiKey] = useState(apiKey || '');
   const [showKey, setShowKey] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleSave = () => {
     setProvider(tempProvider);
@@ -25,7 +26,7 @@ export default function SettingsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white dark:bg-[#0f141e] border border-slate-200 dark:border-[#1e293b] rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div className="bg-white dark:bg-[#0f141e] border border-slate-200 dark:border-[#1e293b] rounded-xl w-full max-w-lg shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-slate-200 dark:border-[#1e293b] bg-slate-50 dark:bg-[#0b0f17] flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -96,6 +97,27 @@ export default function SettingsModal({
               </p>
             </div>
           )}
+
+          <div className="border-t border-slate-200 dark:border-[#1e293b] pt-4">
+            <button
+              type="button"
+              onClick={onOpenHardwareWizard}
+              className="w-full flex items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 dark:bg-[#131b26] border border-slate-200 dark:border-[#222f44] hover:border-cyan-500/60 text-left transition-colors"
+            >
+              <span className="flex items-center gap-2.5">
+                <Cpu className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                <span>
+                  <span className="text-xs font-semibold text-slate-900 dark:text-white block">
+                    System profile & adaptive models
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                    Configure execution tier, model cache, and storage persistence
+                  </span>
+                </span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            </button>
+          </div>
         </div>
 
         {/* Footer */}
