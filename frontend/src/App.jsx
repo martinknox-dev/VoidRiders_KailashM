@@ -47,11 +47,9 @@ export default function App() {
     return isMockMode ? FALLBACK_SCENARIOS[0] : null;
   });
 
-  // Modal states: Setup Wizard automatically opens on first visit
+  // Modal states
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isHardwareWizardOpen, setIsHardwareWizardOpen] = useState(() => {
-    return !localStorage.getItem('vecna_hardware_setup_done');
-  });
+  const [isHardwareWizardOpen, setIsHardwareWizardOpen] = useState(false);
 
   // Settings & Tier (supports localStorage and optional Vercel env variables)
   const [provider, setProvider] = useState(() => {
@@ -136,11 +134,6 @@ export default function App() {
         localStorage.setItem('vecna_model_tier', merged.recommendedTier);
       }
 
-      // Ensure wizard opens on first visit
-      const wizardDone = localStorage.getItem('vecna_hardware_setup_done');
-      if (!wizardDone) {
-        setIsHardwareWizardOpen(true);
-      }
     };
 
     initHardware();
@@ -546,11 +539,8 @@ export default function App() {
           isMockMode={isMockMode}
           setIsMockMode={handleToggleMockMode}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenHardwareWizard={() => setIsHardwareWizardOpen(true)}
           provider={provider}
           backendConnected={backendConnected}
-          currentTier={currentTier}
-          storageInfo={storageInfo}
           theme={theme}
           setTheme={setTheme}
         />
@@ -612,6 +602,10 @@ export default function App() {
         setProvider={setProvider}
         apiKey={apiKey}
         setApiKey={setApiKey}
+        onOpenHardwareWizard={() => {
+          setIsSettingsOpen(false);
+          setIsHardwareWizardOpen(true);
+        }}
       />
 
       {/* Hardware Wizard Modal */}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">VECNA-Pulse diamond logo</title>
+  <rect width="64" height="64" fill="#f3f1ea"/>
+  <path d="M32 10 54 32 32 54 10 32Z" fill="none" stroke="#9b9b93" stroke-width="1.5"/>
+  <path d="M32 19 45 32 32 45 19 32Z" fill="none" stroke="#9a7734" stroke-width="3"/>
+</svg>
