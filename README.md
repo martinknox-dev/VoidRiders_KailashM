@@ -56,12 +56,27 @@ cd backend
 uv run uvicorn app.main:app --port 8000 --reload
 ```
 
+On Windows, if `uv` is not installed, install the backend dependencies once
+and start the server with Python:
+
+```powershell
+cd backend
+python -m pip install -e .
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
 ### Frontend (Vite + React)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
+Run the backend and frontend in separate terminals. Vite proxies `/api/*` and
+`/ws/*` to `http://127.0.0.1:8000`; therefore, `ECONNREFUSED 127.0.0.1:8000`
+means the backend is stopped or failed during startup. Check the backend
+terminal for the import/dependency error, then run `python -m pip install -e .`
+from `backend`.
 
 ### Static Hosting (Vercel)
 Set root directory to `frontend` and deploy. No environment variables required.
