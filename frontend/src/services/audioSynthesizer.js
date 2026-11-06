@@ -51,7 +51,7 @@ class CyberAudioPlayer {
     this.endedCallback = onEnded;
 
     // Check if the scenario has a real audio file / URL
-    const audioUrl = scenario?.audio_url || scenario?.audio_file_url || (scenario?.call_id ? `/samples/${this.getSampleFileName(scenario.call_id)}` : null);
+    const audioUrl = scenario?.audio_url || scenario?.audio_file || scenario?.audio_file_url || (scenario?.call_id ? `/samples/${this.getSampleFileName(scenario.call_id)}` : null);
 
     if (audioUrl) {
       try {

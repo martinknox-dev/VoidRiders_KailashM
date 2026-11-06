@@ -287,6 +287,9 @@ export default function App() {
         const contentType = res.headers.get('content-type') || '';
         if (res.ok && contentType.includes('application/json')) {
           const payload = await res.json();
+          if (!payload.audio_url && (file instanceof Blob || file instanceof File)) {
+            try { payload.audio_url = URL.createObjectURL(file); } catch (e) {}
+          }
           setActiveCall(payload);
           setSessionCalls((prev) => {
             const filtered = prev.filter((c) => c.call_id !== payload.call_id);
@@ -309,6 +312,9 @@ export default function App() {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const clientPayload = await runLocalSpeechTriage(arrayBuffer, 16000, activeHint);
+      if (file instanceof Blob || file instanceof File) {
+        try { clientPayload.audio_url = URL.createObjectURL(file); } catch (e) {}
+      }
       setActiveCall(clientPayload);
       setSessionCalls((prev) => [clientPayload, ...prev.filter((c) => c.call_id !== clientPayload.call_id)]);
       const elapsedSec = Math.max(0.3, parseFloat(((performance.now() - startTime) / 1000).toFixed(1)));
@@ -610,7 +616,7 @@ export default function App() {
           </div>
 
           {/* Center Column: Voice Forensics & Telemetry Workspace */}
-          <div className="h-full min-h-[520px] flex flex-col">
+          <div id="analysis" className="h-full min-h-[520px] flex flex-col">
             <ForensicsPanel
               activeCall={activeCall}
               onAnalyzeAudioFile={handleAnalyzeAudioFile}
@@ -621,7 +627,7 @@ export default function App() {
           </div>
 
           {/* Right Column: Decision Support & Incident Log */}
-          <div className="h-full min-h-[460px] flex flex-col">
+          <div id="decision-support" className="h-full min-h-[460px] flex flex-col">
             <DecisionSupport
               activeCall={activeCall}
               onProcessVoiceCopilot={handleProcessVoiceCopilot}

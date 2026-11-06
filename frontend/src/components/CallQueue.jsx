@@ -389,36 +389,54 @@ export default function CallQueue({
         )}
       </div>
 
-      {/* Upload File & Scenario Drawer Trigger Bars */}
+      {/* Upload File & Scenario Drawer Trigger Bars (Quick Actions) */}
       <div className="px-3.5 py-1.5 border-b border-[#E2DDD3] dark:border-[#223043] bg-[#FAF9F5] dark:bg-[#111923] flex items-center justify-between text-xs">
-        <span className="font-mono text-[10px] uppercase text-[#8C969E] tracking-wider">
-          Quick Ingestion
+        <span className="font-mono text-[9px] uppercase text-[#8C969E] tracking-wider">
+          Quick Actions
         </span>
-        <div className="flex items-center gap-1 font-mono text-[11px]">
+        <div className="flex items-center gap-1 font-mono text-[10px]">
           <button
-            onClick={() => setShowUploadDrawer(!showUploadDrawer)}
+            onClick={() => {
+              setShowUploadDrawer(!showUploadDrawer);
+              setShowScenarioDrawer(false);
+            }}
             className={`px-2 py-0.5 rounded border transition-colors flex items-center gap-1 ${
               showUploadDrawer
                 ? 'bg-[#B18B56] text-white border-[#B18B56]'
                 : 'bg-[#F1EFE8] dark:bg-[#182333] text-[#55636B] dark:text-[#9AA6AC] border-[#E2DDD3] dark:border-[#223043] hover:border-[#B18B56]'
             }`}
-            title="Upload WAV Audio File"
+            title="Upload Audio File (WAV)"
           >
             <Upload size={10} />
-            <span>Upload WAV</span>
+            <span>Upload Audio File</span>
           </button>
 
           <button
-            onClick={() => setShowScenarioDrawer(!showScenarioDrawer)}
+            onClick={() => {
+              setShowScenarioDrawer(!showScenarioDrawer);
+              setShowUploadDrawer(false);
+            }}
             className={`px-2 py-0.5 rounded border transition-colors flex items-center gap-1 ${
               showScenarioDrawer
                 ? 'bg-[#477F7C] text-white border-[#477F7C]'
                 : 'bg-[#F1EFE8] dark:bg-[#182333] text-[#55636B] dark:text-[#9AA6AC] border-[#E2DDD3] dark:border-[#223043] hover:border-[#477F7C]'
             }`}
-            title="Launch Pre-loaded Scenario"
+            title="Run Scenario Test"
           >
             <Radio size={10} />
-            <span>Scenarios</span>
+            <span>Run Scenario Test</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const el = document.getElementById('decision-support');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-2 py-0.5 rounded border bg-[#F1EFE8] dark:bg-[#182333] text-[#55636B] dark:text-[#9AA6AC] border-[#E2DDD3] dark:border-[#223043] hover:border-[#477F7C] transition-colors flex items-center gap-1"
+            title="View Incident Logs"
+          >
+            <Clock size={10} />
+            <span className="hidden sm:inline">Incident Logs</span>
           </button>
         </div>
       </div>
