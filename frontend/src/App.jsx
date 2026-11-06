@@ -10,16 +10,28 @@ import { FALLBACK_SCENARIOS, INDICATIVE_DISCLAIMER } from './mockData';
 import { detectBrowserHardware, fetchBackendHardware } from './services/hardwareEngine';
 import { analyzeAudioClientSide } from './services/clientSerEngine';
 import { runLocalSpeechTriage } from './services/localModelEngine';
-import { saveCaseToDevice, getAllSavedCases, deleteSavedCase, generateEvidenceSha256, generateSection65BCertificate, formatSection65BMarkdownBanner } from './services/caseDb';
+import {
+  saveCaseToDevice,
+  getAllSavedCases,
+  deleteSavedCase,
+  generateEvidenceSha256,
+  generateSection65BCertificate,
+  formatSection65BMarkdownBanner
+} from './services/caseDb';
 import { cyberAudioPlayer } from './services/audioSynthesizer';
 import { callSiliconFlowSTT, callGroqWhisperSTT } from './services/cloudServices';
 import AnalyzingOverlay from './components/AnalyzingOverlay';
 import LandingPage from './components/LandingPage';
+import DashboardSidebar from './components/DashboardSidebar';
+import DashboardOverview from './components/DashboardOverview';
+import AboutModal from './components/AboutModal';
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(() => {
-    return window.location.pathname !== '/dashboard' &&
-      new URLSearchParams(window.location.search).get('dashboard') !== 'true';
+    return (
+      window.location.pathname !== '/dashboard' &&
+      new URLSearchParams(window.location.search).get('dashboard') !== 'true'
+    );
   });
 
   // Theme state: dark / light
@@ -46,11 +58,20 @@ export default function App() {
     return isMockMode ? FALLBACK_SCENARIOS[0] : null;
   });
 
-  // Modal states
+  // Modal & layout states
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHardwareWizardOpen, setIsHardwareWizardOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [processingTimes, setProcessingTimes] = useState([]);
 
-  // Settings & Tier (supports localStorage and optional Vercel env variables)
+  const avgProcessingTimeSec =
+    processingTimes.length > 0
+      ? processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length
+      : null;
+
+  // Settings & Tier
   const [provider, setProvider] = useState(() => {
     return (
       localStorage.getItem('vecna_provider') ||
@@ -141,7 +162,6 @@ export default function App() {
   const loadSavedCases = async () => {
     const list = await getAllSavedCases();
     setSavedCases(list);
-    // If not mock mode and no session calls, pick first saved case as active if available
     if (!isMockMode && sessionCalls.length === 0 && list.length > 0 && !activeCall) {
       setActiveCall(list[0]);
     }
@@ -236,10 +256,10 @@ export default function App() {
   const handleAnalyzeAudioFile = async (file, transcriptHint) => {
     cyberAudioPlayer.stop();
     setIsAnalyzing(true);
+    const startTime = performance.now();
 
     let activeHint = transcriptHint ? transcriptHint.trim() : '';
 
-    // If no hint provided and user has BYOK credentials, attempt cloud transcription during loading overlay
     if (!activeHint && apiKey) {
       try {
         if (provider === 'siliconflow') {
@@ -252,7 +272,6 @@ export default function App() {
       } catch (e) {}
     }
 
-    // If backend is online, send to backend for SenseVoice / Whisper / hybrid triage
     if (backendConnected && !isMockMode) {
       try {
         const formData = new FormData();
@@ -274,12 +293,17 @@ export default function App() {
         const contentType = res.headers.get('content-type') || '';
         if (res.ok && contentType.includes('application/json')) {
           const payload = await res.json();
+          if (!payload.audio_url && (file instanceof Blob || file instanceof File)) {
+            try { payload.audio_url = URL.createObjectURL(file); } catch (e) {}
+          }
           setActiveCall(payload);
           setSessionCalls((prev) => {
             const filtered = prev.filter((c) => c.call_id !== payload.call_id);
             const updated = [payload, ...filtered];
             return updated.sort((a, b) => b.urgency_score - a.urgency_score);
           });
+          const elapsedSec = Math.max(0.4, parseFloat(((performance.now() - startTime) / 1000).toFixed(1)));
+          setProcessingTimes((prev) => [...prev, elapsedSec]);
           setIsAnalyzing(false);
           return;
         } else {
@@ -290,12 +314,16 @@ export default function App() {
       }
     }
 
-    // Client-side on-device models pipeline if backend is offline or on static hosting
     try {
       const arrayBuffer = await file.arrayBuffer();
       const clientPayload = await runLocalSpeechTriage(arrayBuffer, 16000, activeHint);
+      if (file instanceof Blob || file instanceof File) {
+        try { clientPayload.audio_url = URL.createObjectURL(file); } catch (e) {}
+      }
       setActiveCall(clientPayload);
       setSessionCalls((prev) => [clientPayload, ...prev.filter((c) => c.call_id !== clientPayload.call_id)]);
+      const elapsedSec = Math.max(0.3, parseFloat(((performance.now() - startTime) / 1000).toFixed(1)));
+      setProcessingTimes((prev) => [...prev, elapsedSec]);
     } catch (e) {
       console.error('Audio analysis error:', e);
     } finally {
@@ -559,76 +587,116 @@ export default function App() {
     );
   }
 
+  const handleCardClick = (cardId) => {
+    if (cardId === 'active_calls' || cardId === 'saved_cases') {
+      const el = document.getElementById('incidents');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else if (cardId === 'analysis_status') {
+      const el = document.getElementById('analysis');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100/60 dark:bg-[#070a10] text-slate-900 dark:text-slate-100 font-sans selection:bg-cyan-500 selection:text-black transition-colors duration-200">
-      {/* Top Header */}
-      <Header
-        activeCall={activeCall}
-        isMockMode={isMockMode}
-        setIsMockMode={handleToggleMockMode}
+    <div className="dashboard-theme dashboard-shell min-h-screen flex selection:bg-[#477F7C] selection:text-white transition-colors duration-200">
+      <DashboardSidebar
+        currentView={currentView}
+        onSelectView={setCurrentView}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenHardwareWizard={() => setIsHardwareWizardOpen(true)}
-        onOpenLanding={() => {
+        onOpenAbout={() => setIsAboutOpen(true)}
+        backendConnected={backendConnected}
+        onOpenDashboard={() => {
           window.history.pushState({}, '', '/');
           setShowLanding(true);
         }}
-        provider={provider}
-        backendConnected={backendConnected}
-        currentTier={currentTier}
-        storageInfo={storageInfo}
-        theme={theme}
-        setTheme={setTheme}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      {/* 3-Column Command Workspace */}
-      <main className="flex-1 p-3 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0 overflow-hidden max-w-[1720px] mx-auto w-full">
-        {/* Left Column: Priority Call Queue */}
-        <div className="lg:col-span-3 h-full min-h-[380px] lg:min-h-0 flex flex-col" id="incidents">
-          <CallQueue
-            calls={displayedCalls}
-            selectedCallId={activeCall?.call_id}
-            onSelectCall={handleSelectCall}
-            onRefreshQueue={handleRefreshQueue}
-            onSimulateSurge={handleSimulateSurge}
-            isLoading={isLoadingQueue}
-            isSurgeActive={isSurgeActive}
-            savedCases={savedCases}
-            onDeleteSavedCase={handleDeleteSavedCase}
-            isMockMode={isMockMode}
-          />
-        </div>
+      <div className="dashboard-main">
+        <Header
+          activeCall={activeCall}
+          isMockMode={isMockMode}
+          setIsMockMode={handleToggleMockMode}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenHardwareWizard={() => setIsHardwareWizardOpen(true)}
+          onOpenLanding={() => {
+            window.history.pushState({}, '', '/');
+            setShowLanding(true);
+          }}
+          onOpenHome={() => {
+            window.history.pushState({}, '', '/');
+            setShowLanding(true);
+          }}
+          provider={provider}
+          backendConnected={backendConnected}
+          currentTier={currentTier}
+          storageInfo={storageInfo}
+          theme={theme}
+          setTheme={setTheme}
+        />
 
-        {/* Center Column: Voice Forensics & Telemetry */}
-        <div className="lg:col-span-5 h-full min-h-[480px] lg:min-h-0 flex flex-col" id="analysis">
-          <ForensicsPanel
-            activeCall={activeCall}
-            onAnalyzeAudioFile={handleAnalyzeAudioFile}
-            onSimulateScenario={handleSimulateScenario}
-            isAnalyzing={isAnalyzing}
-            onStreamAudioChunk={handleStreamAudioChunk}
-          />
-        </div>
+        <DashboardOverview
+          activeCount={displayedCalls.length}
+          savedCount={savedCases.length}
+          isAnalyzing={isAnalyzing}
+          backendConnected={backendConnected}
+          avgProcessingTimeSec={avgProcessingTimeSec}
+          onCardClick={handleCardClick}
+        />
 
-        {/* Right Column: Decision Support & Incident Log */}
-        <div className="lg:col-span-4 h-full min-h-[440px] lg:min-h-0 flex flex-col">
-          <DecisionSupport
-            activeCall={activeCall}
-            onProcessVoiceCopilot={handleProcessVoiceCopilot}
-            copilotData={copilotData}
-            isProcessingCopilot={isProcessingCopilot}
-            onExportReport={handleExportReport}
-            isExporting={isExporting}
-            onSaveCaseLocally={handleSaveCaseLocally}
-            isCaseSaved={isCurrentCaseSaved}
-          />
-        </div>
-      </main>
+        <main className="dashboard-workspace" id="analysis">
+          {/* Left Column: Priority Call Queue & Live Microphone */}
+          <div className="h-full min-h-[420px] flex flex-col" id="incidents">
+            <CallQueue
+              calls={displayedCalls}
+              selectedCallId={activeCall?.call_id}
+              onSelectCall={handleSelectCall}
+              onRefreshQueue={handleRefreshQueue}
+              onSimulateSurge={handleSimulateSurge}
+              isLoading={isLoadingQueue}
+              isSurgeActive={isSurgeActive}
+              savedCases={savedCases}
+              onDeleteSavedCase={handleDeleteSavedCase}
+              isMockMode={isMockMode}
+              onAnalyzeAudioFile={handleAnalyzeAudioFile}
+              onSimulateScenario={handleSimulateScenario}
+              isAnalyzing={isAnalyzing}
+            />
+          </div>
 
-      {/* Statutory Footer Guardrail */}
-      <footer className="px-4 py-1.5 bg-white/90 dark:bg-[#070b12]/95 border-t border-slate-200 dark:border-[#1e293b] text-center text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
-        <ShieldCheck className="w-3.5 h-3.5 text-cyan-500" />
-        <span>Indicative triage signals only · Human verification required · VECNA-PULSE 1930 COMMAND CONSOLE</span>
-      </footer>
+          {/* Center Column: Voice Forensics & Telemetry Workspace */}
+          <div id="analysis-panel" className="h-full min-h-[520px] flex flex-col">
+            <ForensicsPanel
+              activeCall={activeCall}
+              onAnalyzeAudioFile={handleAnalyzeAudioFile}
+              onSimulateScenario={handleSimulateScenario}
+              isAnalyzing={isAnalyzing}
+              onStreamAudioChunk={handleStreamAudioChunk}
+            />
+          </div>
+
+          {/* Right Column: Decision Support & Incident Log */}
+          <div id="decision-support" className="h-full min-h-[460px] flex flex-col">
+            <DecisionSupport
+              activeCall={activeCall}
+              onProcessVoiceCopilot={handleProcessVoiceCopilot}
+              copilotData={copilotData}
+              isProcessingCopilot={isProcessingCopilot}
+              onExportReport={handleExportReport}
+              isExporting={isExporting}
+              onSaveCaseLocally={handleSaveCaseLocally}
+              isCaseSaved={isCurrentCaseSaved}
+            />
+          </div>
+        </main>
+
+        <footer className="dashboard-status-strip">
+          <ShieldCheck size={13} />
+          <span>Indicative triage signals only · Human verification required</span>
+          <span className="font-mono">VECNA-PULSE / 1930 INCIDENT COMMAND (STATION 04)</span>
+        </footer>
+      </div>
 
       {/* Settings Modal */}
       <SettingsModal
@@ -656,6 +724,12 @@ export default function App() {
           const hw = await detectBrowserHardware();
           setStorageInfo(hw.storage);
         }}
+      />
+
+      {/* About & Architecture Modal */}
+      <AboutModal
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
       />
 
       {/* Full-Screen Analyzing Progress Overlay */}
