@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import Header from './components/Header';
 import SettingsModal from './components/SettingsModal';
 import HardwareWizardModal from './components/HardwareWizardModal';
@@ -13,8 +14,14 @@ import { saveCaseToDevice, getAllSavedCases, deleteSavedCase, generateEvidenceSh
 import { cyberAudioPlayer } from './services/audioSynthesizer';
 import { callSiliconFlowSTT, callGroqWhisperSTT } from './services/cloudServices';
 import AnalyzingOverlay from './components/AnalyzingOverlay';
+import LandingPage from './components/LandingPage';
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(() => {
+    return window.location.pathname !== '/dashboard' &&
+      new URLSearchParams(window.location.search).get('dashboard') !== 'true';
+  });
+
   // Theme state: dark / light
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('vecna_theme') || 'dark';
@@ -39,11 +46,9 @@ export default function App() {
     return isMockMode ? FALLBACK_SCENARIOS[0] : null;
   });
 
-  // Modal states: Setup Wizard automatically opens on first visit
+  // Modal states
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isHardwareWizardOpen, setIsHardwareWizardOpen] = useState(() => {
-    return !localStorage.getItem('vecna_hardware_setup_done');
-  });
+  const [isHardwareWizardOpen, setIsHardwareWizardOpen] = useState(false);
 
   // Settings & Tier (supports localStorage and optional Vercel env variables)
   const [provider, setProvider] = useState(() => {
@@ -126,12 +131,6 @@ export default function App() {
       if (!savedTier) {
         setCurrentTier(merged.recommendedTier);
         localStorage.setItem('vecna_model_tier', merged.recommendedTier);
-      }
-
-      // Ensure wizard opens on first visit
-      const wizardDone = localStorage.getItem('vecna_hardware_setup_done');
-      if (!wizardDone) {
-        setIsHardwareWizardOpen(true);
       }
     };
 
@@ -548,6 +547,18 @@ export default function App() {
     await loadSavedCases();
   };
 
+  if (showLanding) {
+    return (
+      <LandingPage
+        onOpenDashboard={() => {
+          setShowLanding(false);
+          window.history.pushState({}, '', '/dashboard');
+          window.scrollTo(0, 0);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-100/60 dark:bg-[#070a10] text-slate-900 dark:text-slate-100 font-sans selection:bg-cyan-500 selection:text-black transition-colors duration-200">
       {/* Top Header */}
@@ -557,6 +568,10 @@ export default function App() {
         setIsMockMode={handleToggleMockMode}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenHardwareWizard={() => setIsHardwareWizardOpen(true)}
+        onOpenLanding={() => {
+          window.history.pushState({}, '', '/');
+          setShowLanding(true);
+        }}
         provider={provider}
         backendConnected={backendConnected}
         currentTier={currentTier}
@@ -565,10 +580,10 @@ export default function App() {
         setTheme={setTheme}
       />
 
-      {/* Main 3-Column Dashboard Body: Flex-1, flexible layout at any zoom level */}
-      <main className="flex-1 max-w-[1680px] w-full mx-auto p-2.5 sm:p-3.5 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:h-[calc(100vh-68px)] lg:max-h-[1100px] overflow-hidden items-stretch">
+      {/* 3-Column Command Workspace */}
+      <main className="flex-1 p-3 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0 overflow-hidden max-w-[1720px] mx-auto w-full">
         {/* Left Column: Priority Call Queue */}
-        <div className="lg:col-span-3 h-full min-h-[380px] lg:min-h-0 flex flex-col">
+        <div className="lg:col-span-3 h-full min-h-[380px] lg:min-h-0 flex flex-col" id="incidents">
           <CallQueue
             calls={displayedCalls}
             selectedCallId={activeCall?.call_id}
@@ -584,7 +599,7 @@ export default function App() {
         </div>
 
         {/* Center Column: Voice Forensics & Telemetry */}
-        <div className="lg:col-span-5 h-full min-h-[480px] lg:min-h-0 flex flex-col">
+        <div className="lg:col-span-5 h-full min-h-[480px] lg:min-h-0 flex flex-col" id="analysis">
           <ForensicsPanel
             activeCall={activeCall}
             onAnalyzeAudioFile={handleAnalyzeAudioFile}
@@ -609,6 +624,12 @@ export default function App() {
         </div>
       </main>
 
+      {/* Statutory Footer Guardrail */}
+      <footer className="px-4 py-1.5 bg-white/90 dark:bg-[#070b12]/95 border-t border-slate-200 dark:border-[#1e293b] text-center text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
+        <ShieldCheck className="w-3.5 h-3.5 text-cyan-500" />
+        <span>Indicative triage signals only · Human verification required · VECNA-PULSE 1930 COMMAND CONSOLE</span>
+      </footer>
+
       {/* Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
@@ -617,6 +638,10 @@ export default function App() {
         setProvider={setProvider}
         apiKey={apiKey}
         setApiKey={setApiKey}
+        onOpenHardwareWizard={() => {
+          setIsSettingsOpen(false);
+          setIsHardwareWizardOpen(true);
+        }}
       />
 
       {/* Hardware Wizard Modal */}

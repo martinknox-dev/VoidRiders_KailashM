@@ -11,7 +11,8 @@ import {
   ToggleRight,
   Clock,
   Zap,
-  Activity
+  Activity,
+  Globe
 } from 'lucide-react';
 import { MODEL_TIERS } from '../services/hardwareEngine';
 
@@ -21,9 +22,10 @@ export default function Header({
   setIsMockMode,
   onOpenSettings,
   onOpenHardwareWizard,
+  onOpenLanding,
   provider,
   backendConnected,
-  currentTier,
+  currentTier = 'MID_RANGE',
   storageInfo,
   theme,
   setTheme
@@ -36,7 +38,6 @@ export default function Header({
   useEffect(() => {
     // Reset/recalc when active call changes
     if (activeCall?.call_id) {
-      // Default to 48m for high-urgency or 54m for medium
       const initialMins = activeCall.urgency_score > 85 ? 42 : 52;
       setGoldenSeconds(initialMins * 60);
     }
@@ -140,6 +141,18 @@ export default function Header({
 
         {/* System & Hardware Controls */}
         <div className="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
+          {/* Landing page overview toggle */}
+          {onOpenLanding && (
+            <button
+              onClick={onOpenLanding}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-[#121927] border border-slate-200 dark:border-[#1e293b] text-slate-700 dark:text-slate-200 hover:border-cyan-500/60 transition-colors shadow-sm"
+              title="View product landing page & architecture overview"
+            >
+              <Globe className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+              <span className="text-[11px] font-medium">Overview</span>
+            </button>
+          )}
+
           {/* Theme Toggle (Dark / Light) */}
           <button
             onClick={toggleTheme}
@@ -154,24 +167,16 @@ export default function Header({
           </button>
 
           {/* Hardware execution profile */}
-          <button
-            onClick={onOpenHardwareWizard}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-[#121927] border border-slate-200 dark:border-[#1e293b] text-slate-700 dark:text-slate-200 hover:border-cyan-500/60 transition-colors"
-            title="Configure system execution profile and local model cache"
-          >
-            <Cpu className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-            <span className="text-[11px] font-medium">{activeTier.name}</span>
-          </button>
-
-          {/* Local cache size */}
-          <button
-            onClick={onOpenHardwareWizard}
-            className="hidden xl:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-[#121927] border border-slate-200 dark:border-[#1e293b] text-slate-600 dark:text-slate-300 hover:border-slate-400 transition-colors"
-            title="Local browser storage cache"
-          >
-            <HardDrive className="w-3.5 h-3.5 text-slate-400" />
-            <span className="font-mono text-[11px]">{storageInfo?.usageMB || 0} MB</span>
-          </button>
+          {onOpenHardwareWizard && (
+            <button
+              onClick={onOpenHardwareWizard}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-slate-100 dark:bg-[#121927] border border-slate-200 dark:border-[#1e293b] text-slate-700 dark:text-slate-200 hover:border-cyan-500/60 transition-colors"
+              title="Configure system execution profile and local model cache"
+            >
+              <Cpu className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+              <span className="text-[11px] font-medium">{activeTier.name}</span>
+            </button>
+          )}
 
           {/* Demo Mode Toggle */}
           <button
